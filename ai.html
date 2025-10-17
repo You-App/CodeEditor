@@ -431,61 +431,42 @@
     const resp = document.getElementById('ai-response').value.trim();
     if (!resp) return;
 
-    // Извлекаем все блоки @@...@@
-    const blocks = resp.match(/@@[A-Z]\d+(?:-\d+)?[\s\S]*?@@/g);
-    if (!blocks) {
-        alert('Не найдены блоки патча');
-        return;
-    }
-
+    // Ищем блоки в формате @@ТИП:L1-50 ... @@
+    const blockRegex = /@@([A-Z]+):L(\d+)(?:-(\d+))?([\s\S]*?)@@/g;
+    let match;
     let applied = false;
 
-    for (const block of blocks) {
-        // Извлекаем содержимое и заголовок
-        const headerMatch = block.match(/@@([A-Z])(\d+)(?:-(\d+))?/);
-        if (!headerMatch) continue;
+    while ((match = blockRegex.exec(resp)) !== null) {
+        const typeLabel = match[1]; // "HTML", "CSS", "JS"
+        const startLine = parseInt(match[2], 10);
+        const endLine = match[3] ? parseInt(match[3], 10) : startLine;
+        let content = match[4].trim();
 
-        const startLine = parseInt(headerMatch[2], 10);
-        const endLine = headerMatch[3] ? parseInt(headerMatch[3], 10) : startLine;
-        const content = block
-            .replace(/@@[A-Z]\d+(?:-\d+)?/, '')
-            .replace(/@@$/, '')
-            .trim();
+        // Определяем редактор
+        let editorType = null;
+        if (typeLabel === 'HTML') editorType = 'html';
+        else if (typeLabel === 'CSS') editorType = 'css';
+        else if (typeLabel === 'JS') editorType = 'js';
+        else continue;
 
-        if (!content) continue; // пропускаем пустые
+        if (!editors[editorType]) continue;
 
-        // Определяем тип блока по содержимому
-        let type = null;
-        if (content.startsWith('<!DOCTYPE') || content.includes('<html') || content.includes('<body')) {
-            type = 'html';
-        } else if (content.includes('{') && (content.includes('}') || content.includes(';'))) {
-            // Простая эвристика для CSS
-            type = 'css';
-        } else if (content.includes('const ') || content.includes('function ') || content.includes('let ') || content.includes('var ')) {
-            // Эвристика для JS
-            type = 'js';
-        }
+        // Получаем текущие строки
+        let lines = editors[editorType].getValue().split('\n');
 
-        // Если не определили — пропускаем
-        if (!type || !editors[type]) continue;
-
-        // Применяем патч ТОЛЬКО к нужному редактору
-        const lines = editors[type].getValue().split('\n');
-        const newLines = content.split('\n');
-
-        // Заменяем строки (1-based → 0-based)
-        const startIdx = startLine - 1;
-        const endIdx = endLine - 1;
-        const replaceCount = Math.min(endIdx - startIdx + 1, lines.length - startIdx);
-
-        // Если запрашиваем больше строк, чем есть — расширяем
-        while (lines.length < endIdx + 1) {
+        // Убеждаемся, что массив достаточно длинный
+        while (lines.length < endLine) {
             lines.push('');
         }
 
+        // Заменяем диапазон
+        const startIdx = startLine - 1;
+        const replaceCount = endLine - startLine + 1;
+        const newLines = content.split('\n');
+
         lines.splice(startIdx, replaceCount, ...newLines);
-        editors[type].setValue(lines.join('\n'));
-        localStorage.setItem(type, lines.join('\n'));
+        editors[editorType].setValue(lines.join('\n'));
+        localStorage.setItem(editorType, lines.join('\n'));
 
         applied = true;
     }
@@ -493,6 +474,10 @@
     if (applied) {
         updatePreview();
         showToast();
+    } else {
+        // Если не нашли блоков с типом — попробуем старый способ (fallback)
+        // (можно удалить, если не нужен)
+        alert('Формат не распознан. Используй @@HTML:L1-10 ... @@');
     }
 }
 
@@ -558,15 +543,15 @@
 - Панель JS: только JavaScript-код (без <script>).
 
 ИНСТРУКЦИИ:
-1. ВСЕГДА отвечай ТОЛЬКО в формате line-patch:
-   @@L1-50
-   // новый HTML-код (без <style>, <script>)
+1. ВСЕГДА отвечай ТОЛЬКО в формате line-patch с ЯВНЫМ УКАЗАНИЕМ ТИПА:
+   @@HTML:L1-50
+   // HTML-код
    @@
-   @@L1-100
-   /* новый CSS */
+   @@CSS:L1-100
+   /* CSS-код */
    @@
-   @@L1-200
-   // новый JS
+   @@JS:L1-200
+   // JS-код
    @@
 
 2. Каждый блок ОБЯЗАТЕЛЬНО должен содержать код между @@...@@.
