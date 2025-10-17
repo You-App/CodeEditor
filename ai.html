@@ -174,6 +174,7 @@
             border: 1px solid #444;
             padding: 6px;
             font-family: monospace;
+            height: 100px;
         }
 
         #ai-panel button {
@@ -218,44 +219,22 @@
     <div id="ai-panel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <strong>🤖 AI Assistant</strong>
-            <button onclick="toggleAiPanel()" style="background:#444;padding:2px 6px;">✕</button>
+            <button id="close-ai-panel">✕</button>
         </div>
         <div style="margin-bottom: 8px;">
             <label>Ответ от ИИ (вставь патч):</label><br>
             <textarea id="ai-response" placeholder="Пример: @@L5 console.log('test'); @@"></textarea>
         </div>
-        <button onclick="applyAiPatch()">✅ Применить патч</button>
+        <button id="apply-ai-patch">✅ Применить патч</button>
     </div>
 
     <!-- Fixed buttons -->
-    <button id="ai-toggle-btn" onclick="toggleAiPanel()">🤖</button>
-    <button id="send-to-ai" onclick="sendToAI()">✨</button>
+    <button id="ai-toggle-btn">🤖</button>
+    <button id="send-to-ai">✨</button>
 
     <div class="container">
-        <div class="editors-row">
-            <div class="editor-header" data-type="html" onclick="toggleCollapse('html')">
-                <span>HTML</span>
-                <div class="editor-buttons">
-                    <button onclick="clearEditor('html'); event.stopPropagation();" title="Clear">🗑️</button>
-                    <button onclick="copyCode('html'); event.stopPropagation();" title="Copy" id="copy-html">⎘</button>
-                </div>
-            </div>
-
-            <div class="editor-header" data-type="css" onclick="toggleCollapse('css')">
-                <span>CSS</span>
-                <div class="editor-buttons">
-                    <button onclick="clearEditor('css'); event.stopPropagation();" title="Clear">🗑️</button>
-                    <button onclick="copyCode('css'); event.stopPropagation();" title="Copy" id="copy-css">⎘</button>
-                </div>
-            </div>
-
-            <div class="editor-header" data-type="js" onclick="toggleCollapse('js')">
-                <span>JS</span>
-                <div class="editor-buttons">
-                    <button onclick="clearEditor('js'); event.stopPropagation();" title="Clear">🗑️</button>
-                    <button onclick="copyCode('js'); event.stopPropagation();" title="Copy" id="copy-js">⎘</button>
-                </div>
-            </div>
+        <div class="editors-row" id="editors-row">
+            <!-- Заголовки будут созданы динамически -->
         </div>
 
         <div class="editor-wrapper" id="html-wrapper">
@@ -284,8 +263,8 @@
                 <div class="console-header">
                     <span>Console Output</span>
                     <div class="console-buttons">
-                        <button onclick="clearConsole(); event.stopPropagation();" title="Clear">🗑️</button>
-                        <button onclick="copyConsole(); event.stopPropagation();" title="Copy" id="copy-console">⎘</button>
+                        <button id="clear-console">🗑️</button>
+                        <button id="copy-console">⎘</button>
                     </div>
                 </div>
                 <div id="console-output"></div>
@@ -299,28 +278,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/mode/javascript/javascript.min.js"></script>
     
     <script>
+        // === Инициализация редакторов ===
         const editors = {
-            html: CodeMirror.fromTextArea(document.getElementById('html'), {
-                mode: 'htmlmixed',
-                lineNumbers: true,
-                theme: 'default',
-                lineWrapping: true
-            }),
-            css: CodeMirror.fromTextArea(document.getElementById('css'), {
-                mode: 'css',
-                lineNumbers: true,
-                theme: 'default',
-                lineWrapping: true
-            }),
-            js: CodeMirror.fromTextArea(document.getElementById('js'), {
-                mode: 'javascript',
-                lineNumbers: true,
-                theme: 'default',
-                lineWrapping: true
-            })
+            html: null,
+            css: null,
+            js: null
         };
 
-        // Перехват консоли
+        // === Вспомогательные функции ===
         function setupFrameConsole() {
             const iframe = document.getElementById('preview');
             if (!iframe.contentWindow) return;
@@ -347,32 +312,35 @@
             consoleOutput.scrollTop = consoleOutput.scrollHeight;
         }
 
-        function loadContent() {
-            ['html', 'css', 'js'].forEach(type => {
-                const content = localStorage.getItem(type);
-                if (content !== null) {
-                    editors[type].setValue(content);
+        function updatePreview() {
+            const html = editors.html.getValue();
+            const css = `<style>${editors.css.getValue()}</style>`;
+            const js = `<script>
+                try {
+                    ${editors.js.getValue()}
+                } catch(e) {
+                    console.error(e);
                 }
-                const isCollapsed = localStorage.getItem(`${type}-collapsed`) === 'true';
-                if (isCollapsed) {
-                    document.querySelector(`[data-type="${type}"]`).classList.add('collapsed');
-                    document.getElementById(`${type}-wrapper`).style.display = 'none';
-                }
-            });
-            updatePreview();
+            <\/script>`;
+            
+            const iframe = document.getElementById('preview');
+            iframe.srcdoc = html + css + js;
+            iframe.onload = setupFrameConsole;
         }
 
         function copyCode(type) {
             const code = editors[type].getValue();
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = document.getElementById(`copy-${type}`);
-                btn.classList.add('copied');
-                btn.textContent = '✓';
-                setTimeout(() => {
-                    btn.classList.remove('copied');
-                    btn.textContent = '⎘';
-                }, 2000);
-            });
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(code).then(() => {
+                    const btn = document.getElementById(`copy-${type}`);
+                    btn.classList.add('copied');
+                    btn.textContent = '✓';
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.textContent = '⎘';
+                    }, 2000);
+                });
+            }
         }
 
         function clearEditor(type) {
@@ -384,7 +352,7 @@
         }
 
         function toggleCollapse(type) {
-            const header = document.querySelector(`[data-type="${type}"]`);
+            const header = document.querySelector(`.editor-header[data-type="${type}"]`);
             const wrapper = document.getElementById(`${type}-wrapper`);
             if (wrapper.style.display === 'none') {
                 wrapper.style.display = 'flex';
@@ -402,49 +370,40 @@
 
         function copyConsole() {
             const text = document.getElementById('console-output').innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById('copy-console');
-                btn.classList.add('copied');
-                btn.textContent = '✓';
-                setTimeout(() => {
-                    btn.classList.remove('copied');
-                    btn.textContent = '⎘';
-                }, 2000);
-            });
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('copy-console');
+                    btn.classList.add('copied');
+                    btn.textContent = '✓';
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.textContent = '⎘';
+                    }, 2000);
+                });
+            }
         }
 
-        function updatePreview() {
-            const html = editors.html.getValue();
-            const css = `<style>${editors.css.getValue()}</style>`;
-            const js = `<script>
-                try {
-                    ${editors.js.getValue()}
-                } catch(e) {
-                    console.error(e);
+        function loadContent() {
+            ['html', 'css', 'js'].forEach(type => {
+                const content = localStorage.getItem(type);
+                if (content !== null) {
+                    editors[type].setValue(content);
                 }
-            <\/script>`;
-            
-            const iframe = document.getElementById('preview');
-            iframe.srcdoc = html + css + js;
-            iframe.onload = setupFrameConsole;
+                const isCollapsed = localStorage.getItem(`${type}-collapsed`) === 'true';
+                if (isCollapsed) {
+                    document.querySelector(`.editor-header[data-type="${type}"]`).classList.add('collapsed');
+                    document.getElementById(`${type}-wrapper`).style.display = 'none';
+                }
+            });
+            updatePreview();
         }
 
-        Object.values(editors).forEach(editor => {
-            editor.on('change', () => {
-                const type = editor.getTextArea().id;
-                localStorage.setItem(type, editor.getValue());
-                updatePreview();
-            });
-        });
-
-        // =============== AI INTEGRATION ===============
-
+        // === AI функции ===
         function toggleAiPanel() {
             const panel = document.getElementById('ai-panel');
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
 
-        // Применение line-patch
         function applyLinePatch(type, patchText) {
             const editor = editors[type];
             let lines = editor.getValue().split('\n');
@@ -483,7 +442,10 @@
 
         function applyAiPatch() {
             const response = document.getElementById('ai-response').value.trim();
-            if (!response) return alert('Вставь патч от ИИ!');
+            if (!response) {
+                alert('Вставь патч от ИИ!');
+                return;
+            }
             let applied = false;
             for (const type of ['html', 'css', 'js']) {
                 if (applyLinePatch(type, response)) applied = true;
@@ -496,7 +458,6 @@
             }
         }
 
-        // Отправка в ИИ
         function sendToAI() {
             const task = prompt('Что улучшить или изменить?', 'Например: добавь валидацию');
             if (!task) return;
@@ -534,4 +495,107 @@ ${js}
 
             const htmlPage = `
 <!DOCTYPE html>
-<html
+<html>
+<head><meta charset="UTF-8"><title>AI Request</title></head>
+<body>
+  <h2>📋 Скопируй и вставь в чат с ИИ (Qwen, ChatGPT и др.)</h2>
+  <textarea id="prompt" style="width:100%;height:85vh;font-family:monospace;">${prompt.trim()}</textarea>
+  <br>
+  <button onclick="document.getElementById('prompt').select();document.execCommand('copy');alert('Готово! Вставь в чат.')" 
+          style="padding:10px;background:#4a86e8;color:white;border:none;border-radius:4px;cursor:pointer;">
+    📋 Копировать всё
+  </button>
+</body>
+</html>
+`;
+            const blob = new Blob([htmlPage], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+
+        // === Инициализация после загрузки DOM ===
+        document.addEventListener('DOMContentLoaded', () => {
+            // Создаём заголовки редакторов
+            const editorsRow = document.getElementById('editors-row');
+            ['html', 'css', 'js'].forEach(type => {
+                const div = document.createElement('div');
+                div.className = 'editor-header';
+                div.dataset.type = type;
+                div.innerHTML = `
+                    <span>${type.toUpperCase()}</span>
+                    <div class="editor-buttons">
+                        <button class="clear-btn" data-type="${type}" title="Clear">🗑️</button>
+                        <button class="copy-btn" data-type="${type}" title="Copy" id="copy-${type}">⎘</button>
+                    </div>
+                `;
+                editorsRow.appendChild(div);
+            });
+
+            // Инициализация CodeMirror
+            editors.html = CodeMirror.fromTextArea(document.getElementById('html'), {
+                mode: 'htmlmixed',
+                lineNumbers: true,
+                theme: 'default',
+                lineWrapping: true
+            });
+            editors.css = CodeMirror.fromTextArea(document.getElementById('css'), {
+                mode: 'css',
+                lineNumbers: true,
+                theme: 'default',
+                lineWrapping: true
+            });
+            editors.js = CodeMirror.fromTextArea(document.getElementById('js'), {
+                mode: 'javascript',
+                lineNumbers: true,
+                theme: 'default',
+                lineWrapping: true
+            });
+
+            // Привязка событий
+            document.querySelectorAll('.editor-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    if (!e.target.closest('.editor-buttons button')) {
+                        const type = header.dataset.type;
+                        toggleCollapse(type);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.clear-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const type = btn.dataset.type;
+                    clearEditor(type);
+                });
+            });
+
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const type = btn.dataset.type;
+                    copyCode(type);
+                });
+            });
+
+            document.getElementById('ai-toggle-btn').addEventListener('click', toggleAiPanel);
+            document.getElementById('send-to-ai').addEventListener('click', sendToAI);
+            document.getElementById('close-ai-panel').addEventListener('click', toggleAiPanel);
+            document.getElementById('apply-ai-patch').addEventListener('click', applyAiPatch);
+            document.getElementById('clear-console').addEventListener('click', (e) => { e.stopPropagation(); clearConsole(); });
+            document.getElementById('copy-console').addEventListener('click', (e) => { e.stopPropagation(); copyConsole(); });
+
+            // Автообновление превью
+            Object.values(editors).forEach(editor => {
+                editor.on('change', () => {
+                    const type = editor.getTextArea().id;
+                    localStorage.setItem(type, editor.getValue());
+                    updatePreview();
+                });
+            });
+
+            // Загрузка сохранённого контента
+            loadContent();
+        });
+    </script>
+</body>
+</html>
