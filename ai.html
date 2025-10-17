@@ -265,7 +265,7 @@
                 <button id="close-ai-request">✕</button>
             </div>
             <div class="panel-body">
-                <textarea id="ai-task" placeholder="Например: добавь валидацию email"></textarea>
+                <textarea id="ai-task" placeholder="Например: вынеси стили из HTML"></textarea>
                 <br>
                 <button id="generate-prompt">📤 Сформировать промпт</button>
                 <button id="copy-prompt-btn" class="secondary" style="display:none;">📋 Копировать</button>
@@ -437,9 +437,6 @@
             if (ok) {
                 updatePreview();
                 showToast();
-            } else {
-                // Можно показать toast "Формат не распознан", но по ТЗ — только "Скопировано"
-                // Для простоты — ничего не показываем
             }
         }
 
@@ -497,10 +494,9 @@
             document.getElementById('generate-prompt').addEventListener('click', () => {
                 const task = document.getElementById('ai-task').value.trim();
                 if (!task) return;
-                const html = editors.html.getValue();
-                const css = editors.css.getValue();
-                const js = editors.js.getValue();
-const SYSTEM_PROMPT = `Ты — AI-ассистент для мобильного редактора кода. Пользователь работает в трёхпанельном редакторе:
+
+                // === УМНАЯ СИСТЕМНАЯ ИНСТРУКЦИЯ ===
+                const SYSTEM_PROMPT = `Ты — AI-ассистент для мобильного редактора кода. Пользователь работает в трёхпанельном редакторе:
 - Панель HTML: только разметка (<div>, <h1> и т.д.), без <style> и <script>.
 - Панель CSS: только CSS-правила.
 - Панель JS: только JavaScript-код (без <script>).
@@ -527,7 +523,11 @@ const SYSTEM_PROMPT = `Ты — AI-ассистент для мобильног�
 
 5. Используй 1-based нумерацию строк.`;
 
-const full = `${SYSTEM_PROMPT}
+                const html = editors.html.getValue();
+                const css = editors.css.getValue();
+                const js = editors.js.getValue();
+
+                const full = `${SYSTEM_PROMPT}
 
 ЗАДАЧА ПОЛЬЗОВАТЕЛЯ:
 ${task}
@@ -544,6 +544,7 @@ JS:
 ${js}
 
 ТВОЙ ОТВЕТ (ТОЛЬКО ПАТЧИ, НИЧЕГО БОЛЬШЕ):`.trim();
+
                 document.getElementById('full-prompt').value = full;
                 document.getElementById('prompt-output').style.display = 'block';
                 document.getElementById('copy-prompt-btn').style.display = 'inline-block';
