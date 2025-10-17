@@ -428,17 +428,73 @@
         }
 
         function applyAiPatch() {
-            const resp = document.getElementById('ai-response').value.trim();
-            if (!resp) return;
-            let ok = false;
-            for (const type of ['html','css','js']) {
-                if (applyLinePatch(type, resp)) ok = true;
-            }
-            if (ok) {
-                updatePreview();
-                showToast();
-            }
+    const resp = document.getElementById('ai-response').value.trim();
+    if (!resp) return;
+
+    // Извлекаем все блоки @@...@@
+    const blocks = resp.match(/@@[A-Z]\d+(?:-\d+)?[\s\S]*?@@/g);
+    if (!blocks) {
+        alert('Не найдены блоки патча');
+        return;
+    }
+
+    let applied = false;
+
+    for (const block of blocks) {
+        // Извлекаем содержимое и заголовок
+        const headerMatch = block.match(/@@([A-Z])(\d+)(?:-(\d+))?/);
+        if (!headerMatch) continue;
+
+        const startLine = parseInt(headerMatch[2], 10);
+        const endLine = headerMatch[3] ? parseInt(headerMatch[3], 10) : startLine;
+        const content = block
+            .replace(/@@[A-Z]\d+(?:-\d+)?/, '')
+            .replace(/@@$/, '')
+            .trim();
+
+        if (!content) continue; // пропускаем пустые
+
+        // Определяем тип блока по содержимому
+        let type = null;
+        if (content.startsWith('<!DOCTYPE') || content.includes('<html') || content.includes('<body')) {
+            type = 'html';
+        } else if (content.includes('{') && (content.includes('}') || content.includes(';'))) {
+            // Простая эвристика для CSS
+            type = 'css';
+        } else if (content.includes('const ') || content.includes('function ') || content.includes('let ') || content.includes('var ')) {
+            // Эвристика для JS
+            type = 'js';
         }
+
+        // Если не определили — пропускаем
+        if (!type || !editors[type]) continue;
+
+        // Применяем патч ТОЛЬКО к нужному редактору
+        const lines = editors[type].getValue().split('\n');
+        const newLines = content.split('\n');
+
+        // Заменяем строки (1-based → 0-based)
+        const startIdx = startLine - 1;
+        const endIdx = endLine - 1;
+        const replaceCount = Math.min(endIdx - startIdx + 1, lines.length - startIdx);
+
+        // Если запрашиваем больше строк, чем есть — расширяем
+        while (lines.length < endIdx + 1) {
+            lines.push('');
+        }
+
+        lines.splice(startIdx, replaceCount, ...newLines);
+        editors[type].setValue(lines.join('\n'));
+        localStorage.setItem(type, lines.join('\n'));
+
+        applied = true;
+    }
+
+    if (applied) {
+        updatePreview();
+        showToast();
+    }
+}
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
