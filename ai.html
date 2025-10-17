@@ -500,20 +500,39 @@
                 const html = editors.html.getValue();
                 const css = editors.css.getValue();
                 const js = editors.js.getValue();
-                const full = `
-Контекст: мобильный редактор кода. Есть HTML, CSS, JS.
+const SYSTEM_PROMPT = `Ты — AI-ассистент для мобильного редактора кода. Пользователь работает в трёхпанельном редакторе:
+- Панель HTML: только разметка (<div>, <h1> и т.д.), без <style> и <script>.
+- Панель CSS: только CSS-правила.
+- Панель JS: только JavaScript-код (без <script>).
 
-ЗАДАЧА: ${task}
+ИНСТРУКЦИИ:
+1. ВСЕГДА отвечай ТОЛЬКО в формате line-patch:
+   @@L1-50
+   // новый HTML-код (без <style>, <script>)
+   @@
+   @@L1-100
+   /* новый CSS */
+   @@
+   @@L1-200
+   // новый JS
+   @@
 
-ИНСТРУКЦИЯ ДЛЯ ИИ:
-— Ответь ТОЛЬКО в формате line-patch:
-  @@L5-7
-  // новый код
-  @@
-— Не пиши полный файл. Не добавляй пояснений.
-— Используй 1-based нумерацию строк.
+2. Каждый блок ОБЯЗАТЕЛЬНО должен содержать код между @@...@@.
+   Пустой блок = удаление → ЗАПРЕЩЕНО.
 
-ТЕКУЩИЙ КОД:
+3. Не добавляй пояснений, комментариев, заголовков, markdown.
+   Только чистые блоки патчей.
+
+4. Сохраняй логику и функциональность. Не ломай игру.
+
+5. Используй 1-based нумерацию строк.`;
+
+const full = `${SYSTEM_PROMPT}
+
+ЗАДАЧА ПОЛЬЗОВАТЕЛЯ:
+${task}
+
+ТЕКУЩИЙ КОД В РЕДАКТОРЕ:
 
 HTML:
 ${html}
@@ -524,8 +543,7 @@ ${css}
 JS:
 ${js}
 
-Твой ответ (только патч):
-`.trim();
+ТВОЙ ОТВЕТ (ТОЛЬКО ПАТЧИ, НИЧЕГО БОЛЬШЕ):`.trim();
                 document.getElementById('full-prompt').value = full;
                 document.getElementById('prompt-output').style.display = 'block';
                 document.getElementById('copy-prompt-btn').style.display = 'inline-block';
