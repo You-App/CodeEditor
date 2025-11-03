@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emoji Chat — Natural & Context-Aware Bots</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
+    body {
+      background: #f0f0f0;
+      color: #333;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #e0e0e0;
+      position: relative;
+    }
+    #likes-display {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      display: flex;
+      gap: 12px;
+      user-select: none;
+    }
+    .likes-counter {
+      cursor: pointer;
+    }
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      object-fit: cover;
+      image-rendering: -webkit-optimize-contrast;
+    }
+    .refresh-btn {
+      width: 24px;
+      height: 24px;
+      margin-left: 8px;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .refresh-btn:hover {
+      opacity: 1;
+    }
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* ← для мобильных */
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .message {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      line-height: 1.4;
+      position: relative;
+    }
+    .system {
+      align-self: center;
+      background: #e0e0e0;
+      color: #555;
+      font-size: 0.9em;
+      border-radius: 12px;
+      text-align: center;
+      padding: 6px 12px;
+    }
+    .secret-message {
+      background: #ffeaa7;
+      color: #2d3436;
+      font-style: italic;
+      padding: 8px 12px;
+      border-radius: 12px;
+      max-width: 80%;
+    }
+    .sticker-container {
+      margin: 8px auto;
+      text-align: center;
+      position: relative;
+      max-width: 200px;
+    }
+    .sticker-img {
+      height: 100px;
+      image-rendering: -webkit-optimize-contrast;
+      display: block;
+      margin: 0 auto;
+    }
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .action-btn {
+      font-size: 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .player1 { align-self: flex-end; background: #007bff; color: white; border-bottom-right-radius: 4px; }
+    .player2 { align-self: flex-start; background: white; border-bottom-left-radius: 4px; }
+
+    #choice-area {
+      height: 35vh;
+      padding: 0 16px 16px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+      border-top: 1px solid #ddd;
+      scroll-behavior: auto;
+    }
+
+    .emoji-canvas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .emoji-canvas.virtual-scroll {
+      transition: transform 0.1s linear;
+    }
+
+    .emoji-canvas.disabled-all .choice-btn {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .choice-btn {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .choice-btn:hover { transform: scale(1.2); }
+    .choice-btn img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    /* Scanner overlay */
+    #scanner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2000;
+      display: none;
+    }
+
+    .scanner-line {
+      position: absolute;
+      height: 3px;
+      background: cyan;
+      box-shadow: 0 0 8px cyan, 0 0 16px cyan;
+      transform-origin: center;
+      transform: scaleX(0);
+      opacity: 1;
+    }
+
+    @keyframes glitch-scan {
+      0%, 100% { 
+        opacity: 1; 
+        text-shadow: 0 0 5px cyan; 
+        transform: translateX(0);
+      }
+      92% { 
+        opacity: 0.3; 
+        text-shadow: 2px 0 5px red, -2px 0 8px cyan; 
+        transform: translateX(2px);
+      }
+      95% { 
+        opacity: 1; 
+        text-shadow: 0 0 5px cyan; 
+        transform: translateX(-2px);
+      }
+      97% { 
+        opacity: 0.5; 
+        text-shadow: -2px 0 8px red, 2px 0 5px cyan; 
+        transform: translateX(1px);
+      }
+    }
+
+    .scanner-line.scanning {
+      animation: scan-down 4s linear forwards, glitch-scan 0.15s infinite;
+    }
+
+    @keyframes scan-down {
+      0% { 
+        top: var(--start-top); 
+        opacity: 1;
+      }
+      95% {
+        opacity: 1;
+      }
+      100% { 
+        top: var(--end-top); 
+        opacity: 0;
+      }
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .modal-close {
+      float: right;
+      cursor: pointer;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    .share-mix {
+      height: 120px;
+      margin: 12px 0;
+      image-rendering: -webkit-optimize-contrast;
+    }
+    .share-instruction {
+      font-size: 16px;
+      margin: 12px 0;
+      min-height: 24px;
+    }
+    .share-input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .share-send {
+      font-size: 24px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 8px;
+    }
+
+    .collection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 12px;
+    }
+    .collection-item {
+      height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .collection-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: -webkit-optimize-contrast;
+    }
+    .fade { opacity: 1; transition: opacity 0.4s ease; }
+    .fade.out { opacity: 0; }
+  </style>
+</head>
+<body>
+  <div id="status-bar">
+    <div style="display: flex; align-items: center;">
+      <img id="their-avatar" class="avatar" src="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23ccc'/%3E%3C/svg%3E" />
+      <div id="refresh-interlocutor" class="refresh-btn" title="Найти нового собеседника">🔄</div>
+    </div>
+    <div id="likes-display">
+      <div id="my-likes" class="likes-counter">❤️ 0</div>
+      <div id="shared-likes" class="likes-counter">💞 0</div>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <div id="refresh-my-avatar" class="refresh-btn" title="Сменить аватар на случайный микс">🔄</div>
+      <img id="my-avatar" class="avatar" src="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23007bff'/%3E%3C/svg%3E" />
+    </div>
+  </div>
+  <div id="chat"></div>
+  <div id="choice-area">
+    <div class="emoji-canvas virtual-scroll" id="emoji-canvas"></div>
+  </div>
+
+  <div id="scanner-overlay">
+    <div class="scanner-line" id="dynamic-scanner"></div>
+  </div>
+
+  <!-- Модалка шеринга -->
+  <div id="share-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-close" data-target="share-modal">✕</div>
+      <img class="share-mix" id="share-mix-preview" src="" />
+      <div class="share-instruction" id="share-instruction"></div>
+      <input type="text" class="share-input" id="share-message-input" placeholder="..." maxlength="100" />
+      <div>
+        <span id="share-send-btn" class="share-send">✈️</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="my-likes-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-close" data-target="my-likes-modal">✕</div>
+      <h3>Мои лайки</h3>
+      <div class="collection-grid" id="my-likes-grid"></div>
+    </div>
+  </div>
+
+  <div id="shared-likes-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-close" data-target="shared-likes-modal">✕</div>
+      <h3>Совместные лайки</h3>
+      <div class="collection-grid" id="shared-likes-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const script = document.createElement('script');
+    script.src = 'https://git.emoji.supply/kitchen/emojidata.js';
+    script.onload = initApp;
+    document.head.appendChild(script);
+
+    const codePointToText = (codePoint) =>
+      String.fromCodePoint(...codePoint.split('-').map(x => parseInt(x, 16)));
+
+    const emojiUrl = (codePoint) => {
+      let cp = codePoint.split('-').filter(x => x !== 'fe0f').map(s => s.padStart(4, '0')).join('_');
+      return `https://raw.githubusercontent.com/googlefonts/noto-emoji/main/png/128/emoji_u${cp}.png`;
+    };
+
+    const mixmojiUrl = (r, c) => {
+      let padZeros = r < 20220500;
+      c = c.map(code => code.split('-').map(s => padZeros ? s.padStart(4, '0') : s).join('-u'));
+      return `https://www.gstatic.com/android/keyboard/emojikitchen/${r}/u${c[0]}/u${c[0]}_u${c[1]}.png`;
+    };
+
+    const convertBase = (val, from, to) => {
+      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/';
+      let dec = [...val.toString()].reverse().reduce((s, d, i) => s + chars.indexOf(d) * Math.pow(from, i), 0);
+      if (!dec) return '0';
+      let res = '';
+      while (dec) {
+        res = chars[dec % to] + res;
+        dec = Math.floor(dec / to);
+      }
+      return res;
+    };
+
+    const FRIEND_MESSAGES = [
+      "🤖 Ищем пару... 🇷🇺",
+      "🤖 Finding a pair... 🇬🇧",
+      "🤖 正在寻找搭档…… 🇨🇳"
+    ];
+
+    const WANT_TO_PLAY_MESSAGES = [
+      "🤖 Я найду, но только ты можешь ♥️ 🇷🇺",
+      "🤖 I’ll find it, but only you can ♥️ 🇬🇧",
+      "🤖 我会找到，但只有你能 ♥️ 🇨🇳"
+    ];
+
+    const SECRET_MESSAGES = [
+      "Напиши секретное сообщение... 🇷🇺",
+      "Write a secret message... 🇬🇧",
+      "写下秘密消息…… 🇨🇳"
+    ];
+
+    const BOT_PERSONALITIES = [
+      { name: 'reserved', likeChance: 0.2 },
+      { name: 'moderate', likeChance: 0.5 },
+      { name: 'enthusiast', likeChance: 0.7 }
+    ];
+    const REACT_LIKE_CHANCE = 0.5;
+
+    // --- DOM ---
+    const chat = document.getElementById('chat');
+    const choiceArea = document.getElementById('choice-area');
+    const emojiCanvas = document.getElementById('emoji-canvas');
+    const scannerOverlay = document.getElementById('scanner-overlay');
+    const dynamicScanner = document.getElementById('dynamic-scanner');
+    const theirAvatar = document.getElementById('their-avatar');
+    const myAvatar = document.getElementById('my-avatar');
+    const myLikesEl = document.getElementById('my-likes');
+    const sharedLikesEl = document.getElementById('shared-likes');
+    const refreshInterlocutorBtn = document.getElementById('refresh-interlocutor');
+    const refreshMyAvatarBtn = document.getElementById('refresh-my-avatar');
+
+    // Share modal
+    const shareModal = document.getElementById('share-modal');
+    const shareMixPreview = document.getElementById('share-mix-preview');
+    const shareInstruction = document.getElementById('share-instruction');
+    const shareMessageInput = document.getElementById('share-message-input');
+    const shareSendBtn = document.getElementById('share-send-btn');
+
+    // --- Состояния ---
+    let currentBaseEmoji = null;
+    let currentGameIndex = 0;
+    let turnsInCurrentGame = 0;
+    let maxTurnsForCurrentGame = 0;
+    let interlocutorActive = false;
+    let lastBotMessageTime = 0;
+    let myFirstMixUrl = null;
+    let currentBotPersonality = null;
+    let botAssistantActive = false;
+    let inactivityTimer = null;
+    let autoSelectTimer = null;
+    let userInteracted = false;
+    let useVirtualScroll = true;
+    let hasSwitchedToNative = false;
+    let virtualScrollOffset = 0;
+    let autoScrollRaf = null;
+    let isUserScrollingChat = false;
+    let recentMixUrls = [];
+    let myLikedMixes = JSON.parse(localStorage.getItem('myLikedMixes') || '[]');
+    let sharedLikedMixes = JSON.parse(localStorage.getItem('sharedLikedMixes') || '[]');
+
+    const INACTIVITY_TIMEOUT = 5000;
+    const AUTO_SELECT_DELAY = 4000;
+    const RESUME_SCROLL_DELAY = 1500;
+    const SCROLL_SPEED = 0.5;
+
+    // --- Share flow ---
+    let pendingShareUrl = null;
+
+    function updateCounters() {
+      myLikesEl.textContent = `❤️ ${myLikedMixes.length}`;
+      sharedLikesEl.textContent = `💞 ${sharedLikedMixes.length}`;
+    }
+    updateCounters();
+
+    // --- Чат: прокрутка ---
+    let chatScrollTimeout = null;
+    chat.addEventListener('scroll', () => {
+      isUserScrollingChat = true;
+      clearTimeout(chatScrollTimeout);
+      chatScrollTimeout = setTimeout(() => {
+        isUserScrollingChat = false;
+      }, 1000);
+    });
+
+    function scrollToBottomIfNeeded() {
+      if (!isUserScrollingChat || chat.scrollHeight - chat.clientHeight - chat.scrollTop < 100) {
+        chat.scrollTop = chat.scrollHeight;
+        isUserScrollingChat = false;
+      }
+    }
+
+    // --- Модалки ---
+    document.querySelectorAll('.modal-close').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        document.getElementById(target).style.display = 'none';
+      });
+    });
+
+    // Share modal cycling instruction
+    let secretMsgIndex = 0;
+    function cycleSecretMessage() {
+      shareInstruction.textContent = SECRET_MESSAGES[secretMsgIndex];
+      secretMsgIndex = (secretMsgIndex + 1) % SECRET_MESSAGES.length;
+      setTimeout(cycleSecretMessage, 1500);
+    }
+
+    shareSendBtn.addEventListener('click', async () => {
+  const msg = shareMessageInput.value.trim();
+  if (!pendingShareUrl) return;
+
+  const lang = ['ru', 'en', 'zh'][secretMsgIndex]; // текущий язык
+  const url = new URL(window.location);
+  url.searchParams.set('mix', btoa(pendingShareUrl));
+  if (msg) url.searchParams.set('msg', btoa(encodeURIComponent(msg)));
+  url.searchParams.set('lang', lang);
+
+  const finalUrl = url.toString();
+
+  try {
+    if (navigator.share && /^https?:/.test(window.location.protocol)) {
+      await navigator.share({
+        title: 'Смотри, какой микс!',
+        url: finalUrl
+      });
+    } else {
+      // Fallback: копирование через textarea
+      const textarea = document.createElement('textarea');
+      textarea.value = finalUrl;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        const success = document.execCommand('copy');
+        if (success) {
+          alert('Ссылка скопирована! Отправь её другу.');
+        } else {
+          alert('Скопируйте вручную:\n' + finalUrl);
+        }
+      } catch (err) {
+        alert('Скопируйте вручную:\n' + finalUrl);
+      }
+      document.body.removeChild(textarea);
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      console.warn('Share/copy failed:', e);
+      alert('Не удалось отправить. Скопируйте ссылку вручную:\n' + finalUrl);
+    }
+  }
+
+  shareModal.style.display = 'none';
+});
+
+    // --- Сообщения и миксы ---
+    function addMessage(codePoint, sender = 'player2') {
+      const el = document.createElement('div');
+      el.className = `message ${sender}`;
+      const img = document.createElement('img');
+      img.src = emojiUrl(codePoint);
+      img.style.width = '60px';
+      img.style.height = '60px';
+      img.style.verticalAlign = 'middle';
+      img.onerror = () => { img.style.display = 'none'; };
+      el.appendChild(img);
+      chat.appendChild(el);
+      setTimeout(scrollToBottomIfNeeded, 50);
+      if (sender === 'player2') lastBotMessageTime = Date.now();
+      resetInactivityTimer();
+    }
+
+    function addSecretMessage(text) {
+      const el = document.createElement('div');
+      el.className = 'message secret-message';
+      el.textContent = text;
+      chat.appendChild(el);
+      setTimeout(scrollToBottomIfNeeded, 50);
+    }
+
+    async function downloadImage(url) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'emoji-mix.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        alert('Не удалось скачать');
+      }
+    }
+
+    function addSticker(url) {
+      const container = document.createElement('div');
+      container.className = 'message system sticker-container';
+
+      const img = document.createElement('img');
+      img.className = 'sticker-img';
+      img.src = url;
+      img.onerror = () => img.style.display = 'none';
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'action-buttons';
+
+      const likeBtn = document.createElement('span');
+      likeBtn.className = 'action-btn';
+      likeBtn.textContent = '♡';
+      likeBtn.dataset.url = url;
+      likeBtn.dataset.botLiked = 'false';
+
+      const downloadBtn = document.createElement('span');
+      downloadBtn.className = 'action-btn';
+      downloadBtn.textContent = '📥';
+      downloadBtn.onclick = () => downloadImage(url);
+
+      const shareBtn = document.createElement('span');
+      shareBtn.className = 'action-btn';
+      shareBtn.textContent = '📤';
+      shareBtn.onclick = () => {
+        pendingShareUrl = url;
+        shareMixPreview.src = url;
+        shareMessageInput.value = '';
+        shareModal.style.display = 'flex';
+        secretMsgIndex = 0;
+        cycleSecretMessage();
+      };
+
+      // Like logic
+      const isUserLiked = myLikedMixes.some(m => m.url === url);
+      const isShared = sharedLikedMixes.includes(url);
+      updateLikeIcon(likeBtn, isUserLiked, isShared);
+
+      likeBtn.addEventListener('click', () => {
+        const url = likeBtn.dataset.url;
+        const wasUserLiked = myLikedMixes.some(m => m.url === url);
+        const wasBotLiked = likeBtn.dataset.botLiked === 'true';
+
+        if (wasUserLiked) {
+          myLikedMixes = myLikedMixes.filter(m => m.url !== url);
+          if (sharedLikedMixes.includes(url)) {
+            sharedLikedMixes = sharedLikedMixes.filter(u => u !== url);
+          }
+        } else {
+          myLikedMixes.push({ url, timestamp: Date.now() });
+          if (wasBotLiked && !sharedLikedMixes.includes(url)) {
+            sharedLikedMixes.push(url);
+          }
+        }
+
+        localStorage.setItem('myLikedMixes', JSON.stringify(myLikedMixes));
+        localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
+        updateCounters();
+        updateLikeIcon(likeBtn, !wasUserLiked, sharedLikedMixes.includes(url));
+        resetInactivityTimer();
+
+        if (!wasUserLiked && !wasBotLiked && interlocutorActive && recentMixUrls.includes(url)) {
+          if (Math.random() < REACT_LIKE_CHANCE) {
+            setTimeout(() => {
+              if (!interlocutorActive) return;
+              likeBtn.dataset.botLiked = 'true';
+              const nowShared = true;
+              if (!sharedLikedMixes.includes(url)) {
+                sharedLikedMixes.push(url);
+                localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
+                updateCounters();
+              }
+              updateLikeIcon(likeBtn, true, nowShared);
+            }, 1000 + Math.random() * 2000);
+          }
+        }
+      });
+
+      actionsDiv.appendChild(likeBtn);
+      actionsDiv.appendChild(downloadBtn);
+      actionsDiv.appendChild(shareBtn);
+
+      container.appendChild(img);
+      container.appendChild(actionsDiv);
+      chat.appendChild(container);
+      setTimeout(scrollToBottomIfNeeded, 50);
+
+      recentMixUrls.push(url);
+      if (recentMixUrls.length > 3) recentMixUrls.shift();
+
+      if (currentBotPersonality && Math.random() < currentBotPersonality.likeChance) {
+        setTimeout(() => {
+          if (!interlocutorActive) return;
+          const wasUserLiked = myLikedMixes.some(m => m.url === url);
+          const alreadyBotLiked = likeBtn.dataset.botLiked === 'true';
+
+          if (!alreadyBotLiked) {
+            likeBtn.dataset.botLiked = 'true';
+            const nowShared = wasUserLiked;
+            if (nowShared && !sharedLikedMixes.includes(url)) {
+              sharedLikedMixes.push(url);
+              localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
+              updateCounters();
+            }
+            updateLikeIcon(likeBtn, wasUserLiked, nowShared);
+          }
+        }, 2000 + Math.random() * 2000);
+      }
+    }
+
+    function updateLikeIcon(btn, userLiked, isShared) {
+      if (isShared) {
+        btn.textContent = '💞';
+      } else if (userLiked) {
+        btn.textContent = '❤️';
+      } else if (btn.dataset.botLiked === 'true') {
+        btn.textContent = '❤️';
+      } else {
+        btn.textContent = '♡';
+      }
+    }
+
+    // --- Логика игры ---
+    function getCompat(baseId) {
+      const idx = window.points.indexOf(baseId);
+      if (idx === -1) return [];
+      const b64 = convertBase(idx.toString(), 10, 64);
+      const re = new RegExp(`^.*\\.${b64}\\..*$`, 'gm');
+      const matches = [...window.pairs.matchAll(re)];
+      const set = new Set();
+      for (const m of matches) {
+        const [_, a, b] = m[0].split('.');
+        const i1 = convertBase(a, 64, 10), i2 = convertBase(b, 64, 10);
+        if (window.points[i1] === baseId) set.add(window.points[i2]);
+        if (window.points[i2] === baseId) set.add(window.points[i1]);
+      }
+      return [...set];
+    }
+
+    function getMaxTurnsForGame(gameIndex) {
+      if (gameIndex <= 3) return Math.floor(Math.random() * 6) + 5;
+      if (gameIndex <= 6) return Math.floor(Math.random() * 21) + 10;
+      return Math.floor(Math.random() * 91) + 10;
+    }
+
+    function getRandomMixUrl() {
+      const a = window.points[Math.floor(Math.random() * window.points.length)];
+      const compat = getCompat(a);
+      if (!compat.length) return null;
+      const b = compat[Math.floor(Math.random() * compat.length)];
+      const i1 = window.points.indexOf(a), i2 = window.points.indexOf(b);
+      if (i1 === -1 || i2 === -1) return null;
+      const b1 = convertBase(i1, 10, 64), b2 = convertBase(i2, 10, 64);
+      const pat1 = new RegExp(`^(\\w+)\\.${b1}\\.${b2}`, 'm');
+      const pat2 = new RegExp(`^(\\w+)\\.${b2}\\.${b1}`, 'm');
+      const match = window.pairs.match(pat1) || window.pairs.match(pat2);
+      if (!match) return null;
+      const revPart = match[0].split('.')[0];
+      const rev = window.revisions[convertBase(revPart, 64, 10)];
+      const order = window.pairs.match(pat2) ? [b, a] : [a, b];
+      return mixmojiUrl(rev, order);
+    }
+
+    // --- Гибридная прокрутка выбора ---
+    // ... (оставляем без изменений)
+
+    function switchToNativeScroll() {
+      if (!useVirtualScroll || hasSwitchedToNative) return;
+      useVirtualScroll = false;
+      hasSwitchedToNative = true;
+      cancelAnimationFrame(autoScrollRaf);
+      autoScrollRaf = null;
+      emojiCanvas.style.transform = 'none';
+      emojiCanvas.classList.remove('virtual-scroll');
+      const containerHeight = choiceArea.clientHeight;
+      const contentHeight = emojiCanvas.scrollHeight;
+      const maxContentOffset = Math.max(0, contentHeight - containerHeight);
+      const virtualRatio = virtualScrollOffset / (emojiCanvas.offsetHeight || 1);
+      const targetScrollTop = virtualRatio * maxContentOffset;
+      choiceArea.scrollTop = Math.min(maxContentOffset, targetScrollTop);
+    }
+
+    function autoScrollStep() {
+      if (!interlocutorActive || userInteracted || !useVirtualScroll) return;
+      virtualScrollOffset += SCROLL_SPEED;
+      emojiCanvas.style.transform = `translateY(${-virtualScrollOffset}px)`;
+      autoScrollRaf = requestAnimationFrame(autoScrollStep);
+    }
+
+    function startAutoScroll() {
+      if (!useVirtualScroll) return;
+      cancelAnimationFrame(autoScrollRaf);
+      autoScrollRaf = requestAnimationFrame(autoScrollStep);
+    }
+
+    function stopAutoScroll() {
+      if (autoScrollRaf) {
+        cancelAnimationFrame(autoScrollRaf);
+        autoScrollRaf = null;
+      }
+    }
+
+    function resetCanvas() {
+      emojiCanvas.innerHTML = '';
+      virtualScrollOffset = 0;
+      useVirtualScroll = true;
+      hasSwitchedToNative = false;
+      emojiCanvas.classList.add('virtual-scroll');
+      choiceArea.scrollTop = 0;
+    }
+
+    function showChoices() {
+      const compat = getCompat(currentBaseEmoji);
+      if (!compat.length) {
+        switchToNewInterlocutor();
+        return;
+      }
+
+      userInteracted = false;
+      emojiCanvas.classList.remove('disabled-all');
+      resetCanvas();
+
+      const shuffled = [...compat].sort(() => 0.5 - Math.random());
+      const duplicated = [...shuffled, ...shuffled];
+
+      duplicated.forEach(id => {
+        const btn = document.createElement('div');
+        btn.className = 'choice-btn';
+        btn.dataset.id = id;
+        const img = document.createElement('img');
+        img.src = emojiUrl(id);
+        img.onerror = () => { img.style.opacity = '0.3'; };
+        btn.appendChild(img);
+        btn.onclick = () => handleUserChoice(id);
+        emojiCanvas.appendChild(btn);
+      });
+
+      startAutoScroll();
+      resetInactivityTimer();
+    }
+
+    function handleUserChoice(selectedId) {
+      if (botAssistantActive) deactivateBotAssistant();
+      emojiCanvas.classList.add('disabled-all');
+      addMessage(selectedId, 'player1');
+
+      setTimeout(() => {
+        showMix(currentBaseEmoji, selectedId, (mixUrl) => {
+          if (!myFirstMixUrl) myFirstMixUrl = mixUrl;
+          myAvatar.src = myFirstMixUrl;
+
+          turnsInCurrentGame++;
+          if (turnsInCurrentGame >= maxTurnsForCurrentGame) {
+            switchToNewInterlocutor();
+            return;
+          }
+          setTimeout(botRespond, Math.random() * 1000);
+        });
+      }, 600);
+    }
+
+    function showMix(a, b, cb) {
+      const i1 = window.points.indexOf(a), i2 = window.points.indexOf(b);
+      if (i1 === -1 || i2 === -1) return cb(null);
+
+      const b1 = convertBase(i1, 10, 64), b2 = convertBase(i2, 10, 64);
+      const pat1 = new RegExp(`^(\\w+)\\.${b1}\\.${b2}`, 'm');
+      const pat2 = new RegExp(`^(\\w+)\\.${b2}\\.${b1}`, 'm');
+      const match = window.pairs.match(pat1) || window.pairs.match(pat2);
+      if (!match) return cb(null);
+
+      const revPart = match[0].split('.')[0];
+      const rev = window.revisions[convertBase(revPart, 64, 10)];
+      const order = window.pairs.match(pat2) ? [b, a] : [a, b];
+      const url = mixmojiUrl(rev, order);
+
+      addSticker(url);
+      currentBaseEmoji = b;
+      setTimeout(() => cb(url), 1200);
+    }
+
+    function botRespond() {
+      if (!interlocutorActive) return;
+      const compat = getCompat(currentBaseEmoji);
+      if (!compat.length) {
+        switchToNewInterlocutor();
+        return;
+      }
+      const choice = compat[Math.floor(Math.random() * compat.length)];
+      addMessage(choice, 'player2');
+      setTimeout(() => {
+        showMix(currentBaseEmoji, choice, () => {
+          showChoices();
+        });
+      }, 1200);
+    }
+
+    function showMultilingualMessage(messages, onComplete) {
+      const systemDiv = document.createElement('div');
+      systemDiv.className = 'message system fade';
+      chat.appendChild(systemDiv);
+      setTimeout(scrollToBottomIfNeeded, 50);
+
+      let index = 0;
+      const update = () => {
+        systemDiv.textContent = messages[index];
+        systemDiv.classList.remove('out');
+        index = (index + 1) % messages.length;
+      };
+
+      update();
+      const interval = setInterval(() => {
+        systemDiv.classList.add('out');
+        setTimeout(() => {
+          if (index < messages.length) {
+            update();
+          } else {
+            clearInterval(interval);
+            onComplete();
+          }
+        }, 400);
+      }, 1000);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        onComplete();
+      }, 3000);
+    }
+
+    function showMultilingualSearchMessage(onComplete) {
+      showMultilingualMessage(FRIEND_MESSAGES, onComplete);
+    }
+
+    function switchToNewInterlocutor() {
+      interlocutorActive = false;
+      recentMixUrls = [];
+      resetCanvas();
+
+      showMultilingualSearchMessage(() => {
+        setTimeout(() => {
+          currentGameIndex++;
+          turnsInCurrentGame = 0;
+          maxTurnsForCurrentGame = getMaxTurnsForGame(currentGameIndex);
+          launchNewInterlocutor();
+        }, 1500);
+      });
+    }
+
+    function launchNewInterlocutor() {
+      currentBotPersonality = BOT_PERSONALITIES[Math.floor(Math.random() * BOT_PERSONALITIES.length)];
+      let avatarUrl = getRandomMixUrl();
+      if (!avatarUrl) avatarUrl = 'image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"%3E%3Ccircle cx="30" cy="30" r="28" fill="%23ccc"/%3E%3C/svg%3E';
+      theirAvatar.src = avatarUrl;
+
+      currentBaseEmoji = window.points[Math.floor(Math.random() * window.points.length)];
+      interlocutorActive = true;
+      addMessage(currentBaseEmoji, 'player2');
+      showChoices();
+    }
+
+    // --- Взаимодействие ---
+    function onManualInteraction() {
+      if (useVirtualScroll) switchToNativeScroll();
+      resetInactivityTimer();
+    }
+
+    choiceArea.addEventListener('wheel', onManualInteraction, { passive: true });
+    choiceArea.addEventListener('touchstart', onManualInteraction, { passive: true });
+    choiceArea.addEventListener('pointerdown', onManualInteraction);
+
+    refreshInterlocutorBtn.addEventListener('click', () => {
+      if (interlocutorActive) switchToNewInterlocutor();
+    });
+
+    refreshMyAvatarBtn.addEventListener('click', () => {
+      let newUrl = getRandomMixUrl();
+      if (!newUrl && myLikedMixes.length > 0) {
+        newUrl = myLikedMixes[Math.floor(Math.random() * myLikedMixes.length)].url;
+      }
+      if (newUrl) {
+        myAvatar.src = newUrl;
+        if (!myFirstMixUrl) myFirstMixUrl = newUrl;
+      }
+    });
+
+    function activateBotAssistant() {
+      if (!interlocutorActive || userInteracted) return;
+      showMultilingualMessage(WANT_TO_PLAY_MESSAGES, () => {
+        botAssistantActive = true;
+        myAvatar.src = "image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ctext x='30' y='40' font-size='32' text-anchor='middle' fill='%23000'%3E🤖%3C/text%3E%3C/svg%3E";
+        showScanner();
+        autoSelectTimer = setTimeout(() => {
+          if (botAssistantActive && interlocutorActive) {
+            const compat = getCompat(currentBaseEmoji);
+            if (compat.length) {
+              const autoChoice = compat[Math.floor(Math.random() * compat.length)];
+              handleUserChoice(autoChoice);
+            }
+          }
+        }, AUTO_SELECT_DELAY);
+      });
+    }
+
+    function deactivateBotAssistant() {
+      botAssistantActive = false;
+      hideScanner();
+      if (myFirstMixUrl) {
+        myAvatar.src = myFirstMixUrl;
+      } else {
+        myAvatar.src = "image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23007bff'/%3E%3C/svg%3E";
+      }
+    }
+
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      clearTimeout(autoSelectTimer);
+      if (botAssistantActive) deactivateBotAssistant();
+      inactivityTimer = setTimeout(activateBotAssistant, INACTIVITY_TIMEOUT);
+    }
+
+    // --- ЗАПУСК ПО ССЫЛКЕ ---
+    function handleIncomingShare() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mixB64 = urlParams.get('mix');
+      const msgB64 = urlParams.get('msg');
+      const lang = urlParams.get('lang') || 'ru';
+
+      if (!mixB64) return false;
+
+      try {
+        const mixUrl = atob(mixB64);
+        const secretMsg = msgB64 ? decodeURIComponent(atob(msgB64)) : null;
+
+        // Очистить историю
+        chat.innerHTML = '';
+        resetCanvas();
+
+        // Показать микс
+        addSticker(mixUrl);
+
+        // Показать секретное сообщение
+        if (secretMsg) {
+          addSecretMessage(`💌 ${secretMsg}`);
+        }
+
+        // Запустить игру
+        currentGameIndex = 1;
+        turnsInCurrentGame = 0;
+        maxTurnsForCurrentGame = getMaxTurnsForGame(currentGameIndex);
+        launchNewInterlocutor();
+
+        // Убрать параметры из URL
+        history.replaceState(null, '', window.location.pathname);
+
+        return true;
+      } catch (e) {
+        console.warn("Invalid share link", e);
+      }
+      return false;
+    }
+
+    function initApp() {
+      if (handleIncomingShare()) {
+        return;
+      }
+
+      showMultilingualSearchMessage(() => {
+        setTimeout(() => {
+          currentGameIndex = 1;
+          turnsInCurrentGame = 0;
+          maxTurnsForCurrentGame = getMaxTurnsForGame(currentGameIndex);
+          launchNewInterlocutor();
+        }, 1500);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      resetInactivityTimer();
+    });
+  </script>
+</body>
+</html>
