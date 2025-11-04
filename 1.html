@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Emoji Chat — Natural & Context-Aware Bots</title>
 
-  <!-- OG метатеги (динамически обновляются) -->
-  <meta property="og:title" content="Сообщение от вселенной" />
+  <!-- OG Tags (динамически обновляются) -->
+  <meta property="og:title" content="Сообщение от вселенной 🌌" />
   <meta property="og:description" content="Тебе пришло секретное сообщение..." />
-  <meta property="og:image" content="" />
-  <meta property="og:url" content="" />
+  <meta property="og:image" content="https://user.github.io/repo/preview.png" />
+  <meta property="og:url" content="https://user.github.io/repo/" />
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui; }
@@ -93,19 +93,16 @@
       height: 100px;
       image-rendering: -webkit-optimize-contrast;
     }
-    .action-btns {
+    .like-btn,
+    .share-btn {
       position: absolute;
       bottom: -8px;
-      right: 8px;
-      display: flex;
-      gap: 12px;
       font-size: 20px;
       cursor: pointer;
       user-select: none;
     }
-    .action-btns span {
-      cursor: pointer;
-    }
+    .like-btn { right: 8px; }
+    .share-btn { right: 36px; }
 
     .player1 { align-self: flex-end; background: #007bff; color: white; border-bottom-right-radius: 4px; }
     .player2 { align-self: flex-start; background: white; border-bottom-left-radius: 4px; }
@@ -234,7 +231,7 @@
     .modal-content {
       background: white;
       width: 90%;
-      max-width: 600px;
+      max-width: 512px;
       max-height: 80vh;
       overflow-y: auto;
       border-radius: 12px;
@@ -265,51 +262,57 @@
     .fade { opacity: 1; transition: opacity 0.4s ease; }
     .fade.out { opacity: 0; }
 
-    /* Share modal */
-    #share-modal .modal-content {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    #share-preview {
-      display: flex;
-      flex-direction: column;
+    /* Share Modal */
+    #share-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 3000;
+      justify-content: center;
       align-items: center;
-      gap: 12px;
     }
-    #share-preview img {
-      height: 120px;
-      border-radius: 8px;
+    #share-content {
+      background: white;
+      width: 90%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
     }
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    #share-mix {
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+      margin: 10px auto;
+      border-radius: 12px;
     }
-    .input-group label {
-      font-size: 14px;
-      color: #666;
+    .lang-field {
+      margin: 12px 0;
     }
-    .input-group input {
-      padding: 8px 12px;
+    .lang-field textarea {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 8px;
-      font-size: 16px;
+      resize: vertical;
+      min-height: 60px;
     }
     #share-send {
-      align-self: flex-end;
+      margin-top: 16px;
+      padding: 10px 20px;
+      font-size: 18px;
       background: #007bff;
       color: white;
       border: none;
-      border-radius: 50%;
-      width: 48px;
-      height: 48px;
-      font-size: 24px;
+      border-radius: 12px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
+    #share-send:hover { background: #0056b3; }
   </style>
 </head>
 <body>
@@ -322,7 +325,7 @@
       <div id="my-likes" class="likes-counter">❤️ 0</div>
       <div id="shared-likes" class="likes-counter">💞 0</div>
     </div>
-    <img id="my-avatar" class="avatar" src="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23007bff'/%3E%3C/svg%3E" />
+    <img id="my-avatar" class="avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23007bff'/%3E%3C/svg%3E" />
   </div>
   <div id="chat"></div>
   <div id="choice-area">
@@ -333,27 +336,7 @@
     <div class="scanner-line" id="dynamic-scanner"></div>
   </div>
 
-  <!-- Share Modal -->
-  <div id="share-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-close" data-target="share-modal">✕</div>
-      <h3>Отправить в мир</h3>
-      <div id="share-preview">
-        <img id="share-mix-img" src="" />
-      </div>
-      <div class="input-group">
-        <label id="secret-label">🤫 Секретное сообщение</label>
-        <input type="text" id="secret-input" placeholder="Напиши что-то особенное..." maxlength="100" />
-      </div>
-      <div class="input-group">
-        <label>От кого</label>
-        <input type="text" id="from-input" value="от вселенной" maxlength="50" />
-      </div>
-      <button id="share-send">✈️</button>
-    </div>
-  </div>
-
-  <!-- Other modals -->
+  <!-- Modals -->
   <div id="my-likes-modal" class="modal">
     <div class="modal-content">
       <div class="modal-close" data-target="my-likes-modal">✕</div>
@@ -370,229 +353,37 @@
     </div>
   </div>
 
-  <!-- html2canvas CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- Share Modal -->
+  <div id="share-modal" class="modal">
+    <div id="share-content">
+      <div class="modal-close" data-target="share-modal">✕</div>
+      <img id="share-mix" />
+      <div class="lang-field">
+        <textarea id="secret-input" placeholder="Секретное сообщение"></textarea>
+      </div>
+      <div class="lang-field">
+        <textarea id="from-input" placeholder="От кого"></textarea>
+      </div>
+      <button id="share-send">✈️ Отправить</button>
+    </div>
+  </div>
 
   <script>
-    // === Обработка входящих ссылок (OG share) ===
-    function handleIncomingShare() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mixUrl = urlParams.get('mix');
-      const secret = urlParams.get('secret') || '';
-      const from = urlParams.get('from') || 'от вселенной';
+    // --- Настройки ---
+    const GITHUB_PAGES_URL = '/'; // ← ЗАМЕНИТЕ НА СВОЙ АДРЕС!
+    const DEFAULT_SECRET = { ru: 'Секретное сообщение', en: 'Secret message', zh: '秘密消息' };
+    const DEFAULT_FROM = { ru: 'От вселенной', en: 'From the universe', zh: '来自宇宙' };
 
-      if (mixUrl) {
-        // Обновляем OG-мета
-        const ogTitle = `Сообщение ${from}: ${secret || '...'}`;
-        document.querySelector('meta[property="og:title"]').content = ogTitle;
-        document.querySelector('meta[property="og:description"]').content = secret || 'Тебе пришло сообщение...';
-        document.querySelector('meta[property="og:url"]').content = window.location.href;
-
-        // Показываем в чате
-        setTimeout(() => {
-          addSystemMessage(`🤖 Сообщение ${from}...`);
-          if (secret) addSystemMessage(`🤫 ${secret}`);
-          addStickerFromUrl(mixUrl, false); // без like-логики
-          // Запускаем игру
-          setTimeout(() => {
-            currentBaseEmoji = window.points[Math.floor(Math.random() * window.points.length)];
-            interlocutorActive = true;
-            addMessage(currentBaseEmoji, 'player2');
-            showChoices();
-          }, 1500);
-        }, 500);
-      }
-    }
-
-    // === Добавление стикера из URL (без like) ===
-    function addStickerFromUrl(url, withLike = true) {
-      const container = document.createElement('div');
-      container.className = 'message system sticker-container';
-
-      const img = document.createElement('img');
-      img.className = 'sticker-img';
-      img.src = url;
-      img.onerror = () => img.style.display = 'none';
-
-      container.appendChild(img);
-
-      if (withLike) {
-        const actionDiv = document.createElement('div');
-        actionDiv.className = 'action-btns';
-        actionDiv.innerHTML = `<span class="like-btn" data-url="${url}" data-bot-liked="false">♡</span> <span class="share-btn" data-url="${url}">✈️</span>`;
-        container.appendChild(actionDiv);
-
-        // Like logic
-        const likeBtn = actionDiv.querySelector('.like-btn');
-        const shareBtn = actionDiv.querySelector('.share-btn');
-        attachLikeLogic(likeBtn, url);
-        shareBtn.addEventListener('click', () => openShareModal(url));
-      }
-
-      chat.appendChild(container);
-      requestAnimationFrame(() => chat.scrollTop = chat.scrollHeight);
-    }
-
-    // === Share Modal ===
-    const secretMessages = [
-      "🤫 Секретное сообщение (RU)",
-      "🤫 Secret message (EN)",
-      "🤫 秘密消息 (CN)"
-    ];
-
-    function openShareModal(mixUrl) {
-      const modal = document.getElementById('share-modal');
-      document.getElementById('share-mix-img').src = mixUrl;
-      document.getElementById('secret-input').value = '';
-      document.getElementById('from-input').value = 'от вселенной';
-
-      // Циклическая смена языка
-      let langIndex = 0;
-      const labelEl = document.getElementById('secret-label');
-      const interval = setInterval(() => {
-        labelEl.textContent = secretMessages[langIndex];
-        langIndex = (langIndex + 1) % secretMessages.length;
-      }, 800);
-      modal._langInterval = interval;
-
-      modal.style.display = 'flex';
-    }
-
-    document.querySelector('.modal-close[data-target="share-modal"]').addEventListener('click', () => {
-      const modal = document.getElementById('share-modal');
-      clearInterval(modal._langInterval);
-      modal.style.display = 'none';
-    });
-
-    document.getElementById('share-send').addEventListener('click', async () => {
-      const mixUrl = document.getElementById('share-mix-img').src;
-      const secret = document.getElementById('secret-input').value.trim() || '...';
-      const from = document.getElementById('from-input').value.trim() || 'от вселенной';
-
-      // Формируем URL
-      const shareParams = new URLSearchParams({
-        mix: mixUrl,
-        secret: secret,
-        from: from
-      });
-      const fullUrl = `${window.location.origin}${window.location.pathname}?${shareParams.toString()}`;
-
-      // Попытка Web Share
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: `Сообщение ${from}`,
-            text: secret,
-            url: fullUrl
-          });
-        } else {
-          // Fallback: копирование ссылки
-          await navigator.clipboard.writeText(fullUrl);
-          alert('Ссылка скопирована! Вставьте её в соцсеть.');
-        }
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          await navigator.clipboard.writeText(fullUrl);
-          alert('Ссылка скопирована!');
-        }
-      }
-
-      document.getElementById('share-modal').style.display = 'none';
-    });
-
-    // === Обновлённая функция addSticker ===
-    function addSticker(url) {
-      addStickerFromUrl(url, true);
-    }
-
-    function attachLikeLogic(likeBtn, url) {
-      const isUserLiked = myLikedMixes.some(m => m.url === url);
-      const isShared = sharedLikedMixes.includes(url);
-      updateLikeIcon(likeBtn, isUserLiked, isShared);
-
-      likeBtn.addEventListener('click', () => {
-        const wasUserLiked = myLikedMixes.some(m => m.url === url);
-        const wasBotLiked = likeBtn.dataset.botLiked === 'true';
-
-        if (wasUserLiked) {
-          myLikedMixes = myLikedMixes.filter(m => m.url !== url);
-          if (sharedLikedMixes.includes(url)) {
-            sharedLikedMixes = sharedLikedMixes.filter(u => u !== url);
-          }
-        } else {
-          myLikedMixes.push({ url, timestamp: Date.now() });
-          if (wasBotLiked && !sharedLikedMixes.includes(url)) {
-            sharedLikedMixes.push(url);
-          }
-        }
-
-        localStorage.setItem('myLikedMixes', JSON.stringify(myLikedMixes));
-        localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
-        updateCounters();
-        updateLikeIcon(likeBtn, !wasUserLiked, sharedLikedMixes.includes(url));
-        resetInactivityTimer();
-
-        if (!wasUserLiked && !wasBotLiked && interlocutorActive && recentMixUrls.includes(url)) {
-          if (Math.random() < REACT_LIKE_CHANCE) {
-            setTimeout(() => {
-              if (!interlocutorActive) return;
-              likeBtn.dataset.botLiked = 'true';
-              const nowShared = true;
-              if (!sharedLikedMixes.includes(url)) {
-                sharedLikedMixes.push(url);
-                localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
-                updateCounters();
-              }
-              updateLikeIcon(likeBtn, true, nowShared);
-            }, 1000 + Math.random() * 2000);
-          }
-        }
-      });
-
-      // Bot like logic
-      if (currentBotPersonality && Math.random() < currentBotPersonality.likeChance) {
-        setTimeout(() => {
-          if (!interlocutorActive) return;
-          const wasUserLiked = myLikedMixes.some(m => m.url === url);
-          const alreadyBotLiked = likeBtn.dataset.botLiked === 'true';
-
-          if (!alreadyBotLiked) {
-            likeBtn.dataset.botLiked = 'true';
-            const nowShared = wasUserLiked;
-            if (nowShared && !sharedLikedMixes.includes(url)) {
-              sharedLikedMixes.push(url);
-              localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
-              updateCounters();
-            }
-            updateLikeIcon(likeBtn, wasUserLiked, nowShared);
-          }
-        }, 2000 + Math.random() * 2000);
-      }
-    }
-
-    function updateLikeIcon(btn, userLiked, isShared) {
-      if (isShared) {
-        btn.textContent = '💞';
-      } else if (userLiked) {
-        btn.textContent = '❤️';
-      } else if (btn.dataset.botLiked === 'true') {
-        btn.textContent = '❤️';
-      } else {
-        btn.textContent = '♡';
-      }
-    }
-
-    // === Остальной код без изменений, но с обновлённой addSticker ===
+    // --- Загрузка данных ---
     const script = document.createElement('script');
     script.src = 'https://git.emoji.supply/kitchen/emojidata.js';
     script.onload = () => {
-      handleIncomingShare(); // сначала проверим share
-      if (!new URLSearchParams(window.location.search).has('mix')) {
-        initApp(); // иначе обычный старт
-      }
+      handleUrlParams();
+      initApp();
     };
     document.head.appendChild(script);
 
+    // --- Утилиты ---
     const codePointToText = (codePoint) =>
       String.fromCodePoint(...codePoint.split('-').map(x => parseInt(x, 16)));
 
@@ -619,6 +410,13 @@
       return res;
     };
 
+    // --- Язык браузера ---
+    const browserLang = (navigator.language || 'en').split('-')[0];
+    const LANG_ORDER = ['ru', 'en', 'zh'];
+    const getLangIndex = (lang) => LANG_ORDER.indexOf(lang) === -1 ? 1 : LANG_ORDER.indexOf(lang);
+    const currentLangIndex = getLangIndex(browserLang);
+
+    // --- Сообщения ---
     const FRIEND_MESSAGES = [
       "🤖 Ищем пару... 🇷🇺",
       "🤖 Finding a pair... 🇬🇧",
@@ -630,13 +428,6 @@
       "🤖 I’ll find it, but only you can ♥️ 🇬🇧",
       "🤖 我会找到，但只有你能 ♥️ 🇨🇳"
     ];
-
-    const BOT_PERSONALITIES = [
-      { name: 'reserved', likeChance: 0.2 },
-      { name: 'moderate', likeChance: 0.5 },
-      { name: 'enthusiast', likeChance: 0.7 }
-    ];
-    const REACT_LIKE_CHANCE = 0.5;
 
     // --- DOM ---
     const chat = document.getElementById('chat');
@@ -652,13 +443,15 @@
     const sharedLikesGrid = document.getElementById('shared-likes-grid');
     const refreshBtn = document.getElementById('refresh-btn');
 
-    // --- Состояния прокрутки ---
-    let useVirtualScroll = true;
-    let hasSwitchedToNative = false;
-    let virtualScrollOffset = 0;
-    let autoScrollRaf = null;
+    // Share modal
+    const shareModal = document.getElementById('share-modal');
+    const shareContent = document.getElementById('share-content');
+    const shareMixImg = document.getElementById('share-mix');
+    const secretInput = document.getElementById('secret-input');
+    const fromInput = document.getElementById('from-input');
+    const shareSendBtn = document.getElementById('share-send');
 
-    // --- Остальные состояния ---
+    // --- Состояния ---
     let currentBaseEmoji = null;
     let currentGameIndex = 0;
     let turnsInCurrentGame = 0;
@@ -672,7 +465,10 @@
     let inactivityTimer = null;
     let autoSelectTimer = null;
     let userInteracted = false;
-    let manualScrollTimer = null;
+    let useVirtualScroll = true;
+    let hasSwitchedToNative = false;
+    let virtualScrollOffset = 0;
+    let autoScrollRaf = null;
 
     const INACTIVITY_TIMEOUT = 5000;
     const AUTO_SELECT_DELAY = 4000;
@@ -683,17 +479,78 @@
     let myLikedMixes = JSON.parse(localStorage.getItem('myLikedMixes') || '[]');
     let sharedLikedMixes = JSON.parse(localStorage.getItem('sharedLikedMixes') || '[]');
 
+    // --- OG Meta ---
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    const ogImage = document.querySelector('meta[property="og:image"]');
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+
+    // --- Утилиты чата ---
     function updateCounters() {
       myLikesEl.textContent = `❤️ ${myLikedMixes.length}`;
       sharedLikesEl.textContent = `💞 ${sharedLikedMixes.length}`;
     }
     updateCounters();
 
-    // --- Модалки (без изменений) ---
+    function scrollToBottom() {
+      requestAnimationFrame(() => {
+        chat.scrollTop = chat.scrollHeight;
+      });
+    }
+
+    function addMessage(text, sender = 'player2', isEmoji = false) {
+      const el = document.createElement('div');
+      el.className = `message ${sender}`;
+      if (isEmoji) {
+        const img = document.createElement('img');
+        img.src = text;
+        img.style.width = '60px';
+        img.style.height = '60px';
+        img.style.verticalAlign = 'middle';
+        img.onerror = () => { img.style.display = 'none'; };
+        el.appendChild(img);
+      } else {
+        el.textContent = text;
+      }
+      chat.appendChild(el);
+      scrollToBottom();
+      if (sender === 'player2') lastBotMessageTime = Date.now();
+      resetInactivityTimer();
+    }
+
+    // --- Обработка URL-параметров ---
+    function handleUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const secret = urlParams.get('secret');
+      const from = urlParams.get('from');
+      const mixUrl = urlParams.get('mix');
+
+      if (secret || from || mixUrl) {
+        // Обновляем OG-теги
+        ogTitle.content = from || 'Сообщение от вселенной 🌌';
+        ogDesc.content = secret || 'Тебе пришло секретное сообщение...';
+        ogUrl.content = window.location.href;
+
+        // Генерируем временную картинку (или используем mixUrl)
+        if (mixUrl) {
+          ogImage.content = mixUrl;
+          // Добавляем сообщения в чат
+          if (from) addMessage(from, 'system');
+          if (secret) addMessage(secret, 'system');
+          addSticker(mixUrl, true); // без лайка
+        }
+      }
+    }
+
+    // --- Модалки ---
     document.querySelectorAll('.modal-close').forEach(btn => {
       btn.addEventListener('click', () => {
         const target = btn.dataset.target;
-        document.getElementById(target).style.display = 'none';
+        if (target === 'share-modal') {
+          shareModal.style.display = 'none';
+        } else {
+          document.getElementById(target).style.display = 'none';
+        }
       });
     });
 
@@ -719,7 +576,7 @@
       document.getElementById('shared-likes-modal').style.display = 'flex';
     });
 
-    // --- Сканер (без изменений) ---
+    // --- Сканер ---
     function showScanner() {
       const rect = choiceArea.getBoundingClientRect();
       const top = rect.top + window.scrollY;
@@ -754,32 +611,225 @@
       dynamicScanner.classList.remove('scanning');
     }
 
-    // --- Сообщения ---
-    function addMessage(codePoint, sender = 'player2') {
-      const el = document.createElement('div');
-      el.className = `message ${sender}`;
+    // --- ШЕРИНГ ---
+    function showShareModal(mixUrl) {
+      shareMixImg.src = mixUrl;
+      secretInput.value = '';
+      fromInput.value = '';
+
+      // Многоязычные placeholder'ы
+      const cycleLangs = (texts, input) => {
+        let i = 0;
+        const show = () => {
+          input.placeholder = texts[LANG_ORDER[i]];
+          i = (i + 1) % 3;
+        };
+        show();
+        const interval = setInterval(() => {
+          show();
+          if (i === (currentLangIndex + 1) % 3) {
+            clearInterval(interval);
+            input.placeholder = texts[LANG_ORDER[currentLangIndex]];
+          }
+        }, 800);
+      };
+
+      cycleLangs(DEFAULT_SECRET, secretInput);
+      cycleLangs(DEFAULT_FROM, fromInput);
+
+      shareSendBtn.onclick = () => {
+        const secret = secretInput.value.trim() || DEFAULT_SECRET[LANG_ORDER[currentLangIndex]];
+        const from = fromInput.value.trim() || DEFAULT_FROM[LANG_ORDER[currentLangIndex]];
+
+        // Генерация картинки 512x512
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = mixUrl;
+        img.onload = () => {
+          // Фон
+          ctx.fillStyle = '#f0f0f0';
+          ctx.fillRect(0, 0, 512, 512);
+
+          // Микс по центру
+          const size = 300;
+          ctx.drawImage(img, (512 - size) / 2, 50, size, size);
+
+          // Текст "от кого"
+          ctx.font = 'bold 32px system-ui';
+          ctx.fillStyle = '#333';
+          ctx.textAlign = 'center';
+          wrapText(ctx, from, 256, 400, 480, 36);
+
+          // Текст "сообщение"
+          ctx.font = '24px system-ui';
+          ctx.fillStyle = '#666';
+          wrapText(ctx, secret, 256, 460, 480, 28);
+
+          const imageUrl = canvas.toDataURL('image/png');
+          ogImage.content = imageUrl;
+
+          // Формирование URL
+          const shareUrl = `${GITHUB_PAGES_URL}?secret=${encodeURIComponent(secret)}&from=${encodeURIComponent(from)}&mix=${encodeURIComponent(mixUrl)}`;
+
+          // Web Share
+          if (navigator.share) {
+            navigator.share({
+              title: from,
+              text: secret,
+              url: shareUrl
+            }).catch(console.warn);
+          } else {
+            // Fallback: показать ссылку
+            alert(`Скопируйте ссылку:\n${shareUrl}`);
+          }
+
+          shareModal.style.display = 'none';
+        };
+      };
+
+      shareModal.style.display = 'flex';
+    }
+
+    // Обёртка текста на canvas
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      let y0 = y;
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line, x, y0);
+          line = words[n] + ' ';
+          y0 += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, y0);
+    }
+
+    // --- Микс ---
+    function addSticker(url, skipLike = false) {
+      const container = document.createElement('div');
+      container.className = 'message system sticker-container';
+
       const img = document.createElement('img');
-      img.src = emojiUrl(codePoint);
-      img.style.width = '60px';
-      img.style.height = '60px';
-      img.style.verticalAlign = 'middle';
-      img.onerror = () => { img.style.display = 'none'; };
-      el.appendChild(img);
-      chat.appendChild(el);
-      requestAnimationFrame(() => chat.scrollTop = chat.scrollHeight);
-      if (sender === 'player2') lastBotMessageTime = Date.now();
+      img.className = 'sticker-img';
+      img.src = url;
+      img.onerror = () => img.style.display = 'none';
+
+      container.appendChild(img);
+
+      if (!skipLike) {
+        const likeBtn = document.createElement('div');
+        likeBtn.className = 'like-btn';
+        likeBtn.dataset.url = url;
+        likeBtn.dataset.botLiked = 'false';
+        likeBtn.textContent = '♡';
+        likeBtn.addEventListener('click', handleLike.bind(null, likeBtn, url));
+        container.appendChild(likeBtn);
+
+        const shareBtn = document.createElement('div');
+        shareBtn.className = 'share-btn';
+        shareBtn.textContent = '✈️';
+        shareBtn.addEventListener('click', () => showShareModal(url));
+        container.appendChild(shareBtn);
+      }
+
+      chat.appendChild(container);
+      scrollToBottom();
+
+      if (!skipLike) {
+        recentMixUrls.push(url);
+        if (recentMixUrls.length > 3) recentMixUrls.shift();
+
+        if (currentBotPersonality && Math.random() < currentBotPersonality.likeChance) {
+          setTimeout(() => {
+            if (!interlocutorActive) return;
+            const wasUserLiked = myLikedMixes.some(m => m.url === url);
+            const alreadyBotLiked = likeBtn.dataset.botLiked === 'true';
+
+            if (!alreadyBotLiked) {
+              likeBtn.dataset.botLiked = 'true';
+              const nowShared = wasUserLiked;
+              if (nowShared && !sharedLikedMixes.includes(url)) {
+                sharedLikedMixes.push(url);
+                localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
+                updateCounters();
+              }
+              updateLikeIcon(likeBtn, wasUserLiked, nowShared);
+            }
+          }, 2000 + Math.random() * 2000);
+        }
+      }
+    }
+
+    function handleLike(likeBtn, url) {
+      const wasUserLiked = myLikedMixes.some(m => m.url === url);
+      const wasBotLiked = likeBtn.dataset.botLiked === 'true';
+
+      if (wasUserLiked) {
+        myLikedMixes = myLikedMixes.filter(m => m.url !== url);
+        if (sharedLikedMixes.includes(url)) {
+          sharedLikedMixes = sharedLikedMixes.filter(u => u !== url);
+        }
+      } else {
+        myLikedMixes.push({ url, timestamp: Date.now() });
+        if (wasBotLiked && !sharedLikedMixes.includes(url)) {
+          sharedLikedMixes.push(url);
+        }
+      }
+
+      localStorage.setItem('myLikedMixes', JSON.stringify(myLikedMixes));
+      localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
+      updateCounters();
+      updateLikeIcon(likeBtn, !wasUserLiked, sharedLikedMixes.includes(url));
       resetInactivityTimer();
+
+      if (!wasUserLiked && !wasBotLiked && interlocutorActive && recentMixUrls.includes(url)) {
+        if (Math.random() < REACT_LIKE_CHANCE) {
+          setTimeout(() => {
+            if (!interlocutorActive) return;
+            likeBtn.dataset.botLiked = 'true';
+            const nowShared = true;
+            if (!sharedLikedMixes.includes(url)) {
+              sharedLikedMixes.push(url);
+              localStorage.setItem('sharedLikedMixes', JSON.stringify(sharedLikedMixes));
+              updateCounters();
+            }
+            updateLikeIcon(likeBtn, true, nowShared);
+          }, 1000 + Math.random() * 2000);
+        }
+      }
     }
 
-    function addSystemMessage(text) {
-      const el = document.createElement('div');
-      el.className = 'message system';
-      el.textContent = text;
-      chat.appendChild(el);
-      requestAnimationFrame(() => chat.scrollTop = chat.scrollHeight);
+    function updateLikeIcon(btn, userLiked, isShared) {
+      if (isShared) {
+        btn.textContent = '💞';
+      } else if (userLiked) {
+        btn.textContent = '❤️';
+      } else if (btn.dataset.botLiked === 'true') {
+        btn.textContent = '❤️';
+      } else {
+        btn.textContent = '♡';
+      }
     }
 
-    // --- Логика игры (остальное без изменений) ---
+    // --- Игровая логика (сокращена для краткости, но полная в коде) ---
+    const BOT_PERSONALITIES = [
+      { name: 'reserved', likeChance: 0.2 },
+      { name: 'moderate', likeChance: 0.5 },
+      { name: 'enthusiast', likeChance: 0.7 }
+    ];
+    const REACT_LIKE_CHANCE = 0.5;
+
     function getCompat(baseId) {
       const idx = window.points.indexOf(baseId);
       if (idx === -1) return [];
@@ -820,6 +870,7 @@
       return mixmojiUrl(rev, order);
     }
 
+    // --- Прокрутка (гибридная) ---
     function switchToNativeScroll() {
       if (!useVirtualScroll || hasSwitchedToNative) return;
       useVirtualScroll = false;
@@ -899,7 +950,7 @@
       if (botAssistantActive) deactivateBotAssistant();
       emojiCanvas.classList.add('disabled-all');
       lastUserEmojiId = selectedId;
-      addMessage(selectedId, 'player1');
+      addMessage(emojiUrl(selectedId), 'player1', true);
 
       setTimeout(() => {
         showMix(currentBaseEmoji, selectedId, (mixUrl) => {
@@ -944,7 +995,7 @@
         return;
       }
       const choice = compat[Math.floor(Math.random() * compat.length)];
-      addMessage(choice, 'player2');
+      addMessage(emojiUrl(choice), 'player2', true);
       setTimeout(() => {
         showMix(currentBaseEmoji, choice, () => {
           showChoices();
@@ -956,7 +1007,7 @@
       const systemDiv = document.createElement('div');
       systemDiv.className = 'message system fade';
       chat.appendChild(systemDiv);
-      requestAnimationFrame(() => chat.scrollTop = chat.scrollHeight);
+      scrollToBottom();
 
       let index = 0;
       const update = () => {
@@ -1006,15 +1057,16 @@
     function launchNewInterlocutor() {
       currentBotPersonality = BOT_PERSONALITIES[Math.floor(Math.random() * BOT_PERSONALITIES.length)];
       let avatarUrl = getRandomMixUrl();
-      if (!avatarUrl) avatarUrl = 'image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"%3E%3Ccircle cx="30" cy="30" r="28" fill="%23ccc"/%3E%3C/svg%3E';
+      if (!avatarUrl) avatarUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"%3E%3Ccircle cx="30" cy="30" r="28" fill="%23ccc"/%3E%3C/svg%3E';
       theirAvatar.src = avatarUrl;
 
       currentBaseEmoji = window.points[Math.floor(Math.random() * window.points.length)];
       interlocutorActive = true;
-      addMessage(currentBaseEmoji, 'player2');
+      addMessage(emojiUrl(currentBaseEmoji), 'player2', true);
       showChoices();
     }
 
+    // --- Взаимодействие ---
     function onManualInteraction() {
       if (useVirtualScroll) {
         switchToNativeScroll();
@@ -1085,4 +1137,3 @@
   </script>
 </body>
 </html>
-
