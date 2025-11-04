@@ -48,6 +48,9 @@
       cursor: pointer;
       opacity: 0.6;
       transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .refresh-btn:hover {
       opacity: 1;
@@ -55,7 +58,6 @@
     #chat {
       flex: 1;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch; /* ← для мобильных */
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -78,19 +80,11 @@
       text-align: center;
       padding: 6px 12px;
     }
-    .secret-message {
-      background: #ffeaa7;
-      color: #2d3436;
-      font-style: italic;
-      padding: 8px 12px;
-      border-radius: 12px;
-      max-width: 80%;
-    }
     .sticker-container {
       margin: 8px auto;
       text-align: center;
       position: relative;
-      max-width: 200px;
+      max-width: 300px;
     }
     .sticker-img {
       height: 100px;
@@ -98,16 +92,19 @@
       display: block;
       margin: 0 auto;
     }
-    .action-buttons {
+    .sticker-actions {
       display: flex;
       justify-content: center;
-      gap: 12px;
+      gap: 16px;
       margin-top: 6px;
     }
-    .action-btn {
+    .sticker-btn {
       font-size: 20px;
       cursor: pointer;
-      user-select: none;
+      opacity: 0.7;
+    }
+    .sticker-btn:hover {
+      opacity: 1;
     }
 
     .player1 { align-self: flex-end; background: #007bff; color: white; border-bottom-right-radius: 4px; }
@@ -120,7 +117,6 @@
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
       position: relative;
       border-top: 1px solid #ddd;
       scroll-behavior: auto;
@@ -242,47 +238,32 @@
       max-height: 80vh;
       overflow-y: auto;
       border-radius: 12px;
-      padding: 20px;
+      padding: 16px;
       text-align: center;
     }
     .modal-close {
       float: right;
       cursor: pointer;
       font-size: 20px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
-    .share-mix {
-      height: 120px;
-      margin: 12px 0;
-      image-rendering: -webkit-optimize-contrast;
-    }
-    .share-instruction {
-      font-size: 16px;
-      margin: 12px 0;
-      min-height: 24px;
-    }
-    .share-input {
+    .secret-input {
       width: 100%;
-      padding: 10px;
-      margin: 10px 0;
+      padding: 8px;
+      margin: 8px 0;
       border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 6px;
     }
-    .share-send {
-      font-size: 24px;
-      cursor: pointer;
+    .share-btn {
+      margin-top: 12px;
       background: #007bff;
       color: white;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 8px;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
     }
-
     .collection-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -306,7 +287,7 @@
 <body>
   <div id="status-bar">
     <div style="display: flex; align-items: center;">
-      <img id="their-avatar" class="avatar" src="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23ccc'/%3E%3C/svg%3E" />
+      <img id="their-avatar" class="avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23ccc'/%3E%3C/svg%3E" />
       <div id="refresh-interlocutor" class="refresh-btn" title="Найти нового собеседника">🔄</div>
     </div>
     <div id="likes-display">
@@ -314,7 +295,7 @@
       <div id="shared-likes" class="likes-counter">💞 0</div>
     </div>
     <div style="display: flex; align-items: center;">
-      <div id="refresh-my-avatar" class="refresh-btn" title="Сменить аватар на случайный микс">🔄</div>
+      <div id="refresh-my-mix" class="refresh-btn" title="Сменить мой микс">🔄</div>
       <img id="my-avatar" class="avatar" src="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23007bff'/%3E%3C/svg%3E" />
     </div>
   </div>
@@ -327,16 +308,16 @@
     <div class="scanner-line" id="dynamic-scanner"></div>
   </div>
 
-  <!-- Модалка шеринга -->
+  <!-- Шеринг модалка -->
   <div id="share-modal" class="modal">
     <div class="modal-content">
       <div class="modal-close" data-target="share-modal">✕</div>
-      <img class="share-mix" id="share-mix-preview" src="" />
-      <div class="share-instruction" id="share-instruction"></div>
-      <input type="text" class="share-input" id="share-message-input" placeholder="..." maxlength="100" />
-      <div>
-        <span id="share-send-btn" class="share-send">✈️</span>
-      </div>
+      <img id="share-mix-preview" class="sticker-img" src="" />
+      <div id="secret-prompt" style="margin: 10px 0;">Напиши секретное сообщение...</div>
+      <textarea id="secret-message" class="secret-input" rows="3" placeholder="Твоё сообщение..."></textarea>
+      <div>От кого:</div>
+      <input id="from-name" class="secret-input" value="Я" />
+      <button id="send-share" class="share-btn">✈️</button>
     </div>
   </div>
 
@@ -357,10 +338,35 @@
   </div>
 
   <script>
+    // === ПОЛНАЯ ПОДДЕРЖКА URL-ПАРАМЕТРОВ ДЛЯ ШЕРИНГА ===
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedMix = urlParams.get('mix');
+    const sharedSecret = urlParams.get('msg');
+    const sharedFrom = urlParams.get('from') || 'Друг';
+
     const script = document.createElement('script');
     script.src = 'https://git.emoji.supply/kitchen/emojidata.js';
-    script.onload = initApp;
+    script.onload = () => {
+      if (sharedMix) {
+        // Загружаем игру с шеринга
+        startGameFromShare(sharedMix, sharedSecret, sharedFrom);
+      } else {
+        initApp();
+      }
+    };
     document.head.appendChild(script);
+
+    // === URL-безопасное кодирование микса ===
+    function encodeMixUrl(url) {
+      return btoa(encodeURIComponent(url)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+    function decodeMixUrl(encoded) {
+      try {
+        return decodeURIComponent(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')));
+      } catch (e) {
+        return null;
+      }
+    }
 
     const codePointToText = (codePoint) =>
       String.fromCodePoint(...codePoint.split('-').map(x => parseInt(x, 16)));
@@ -400,7 +406,7 @@
       "🤖 我会找到，但只有你能 ♥️ 🇨🇳"
     ];
 
-    const SECRET_MESSAGES = [
+    const SECRET_PROMPTS = [
       "Напиши секретное сообщение... 🇷🇺",
       "Write a secret message... 🇬🇧",
       "写下秘密消息…… 🇨🇳"
@@ -423,15 +429,18 @@
     const myAvatar = document.getElementById('my-avatar');
     const myLikesEl = document.getElementById('my-likes');
     const sharedLikesEl = document.getElementById('shared-likes');
-    const refreshInterlocutorBtn = document.getElementById('refresh-interlocutor');
-    const refreshMyAvatarBtn = document.getElementById('refresh-my-avatar');
+    const myLikesGrid = document.getElementById('my-likes-grid');
+    const sharedLikesGrid = document.getElementById('shared-likes-grid');
+    const refreshInterlocutor = document.getElementById('refresh-interlocutor');
+    const refreshMyMix = document.getElementById('refresh-my-mix');
 
-    // Share modal
+    // --- Шеринг ---
     const shareModal = document.getElementById('share-modal');
     const shareMixPreview = document.getElementById('share-mix-preview');
-    const shareInstruction = document.getElementById('share-instruction');
-    const shareMessageInput = document.getElementById('share-message-input');
-    const shareSendBtn = document.getElementById('share-send-btn');
+    const secretPrompt = document.getElementById('secret-prompt');
+    const secretMessage = document.getElementById('secret-message');
+    const fromName = document.getElementById('from-name');
+    const sendShareBtn = document.getElementById('send-share');
 
     // --- Состояния ---
     let currentBaseEmoji = null;
@@ -441,49 +450,37 @@
     let interlocutorActive = false;
     let lastBotMessageTime = 0;
     let myFirstMixUrl = null;
+    let lastUserEmojiId = null;
     let currentBotPersonality = null;
     let botAssistantActive = false;
     let inactivityTimer = null;
     let autoSelectTimer = null;
     let userInteracted = false;
+    let manualScrollTimer = null;
+
     let useVirtualScroll = true;
     let hasSwitchedToNative = false;
     let virtualScrollOffset = 0;
     let autoScrollRaf = null;
-    let isUserScrollingChat = false;
-    let recentMixUrls = [];
-    let myLikedMixes = JSON.parse(localStorage.getItem('myLikedMixes') || '[]');
-    let sharedLikedMixes = JSON.parse(localStorage.getItem('sharedLikedMixes') || '[]');
 
     const INACTIVITY_TIMEOUT = 5000;
     const AUTO_SELECT_DELAY = 4000;
     const RESUME_SCROLL_DELAY = 1500;
     const SCROLL_SPEED = 0.5;
 
-    // --- Share flow ---
-    let pendingShareUrl = null;
+    let recentMixUrls = [];
+    let myLikedMixes = JSON.parse(localStorage.getItem('myLikedMixes') || '[]');
+    let sharedLikedMixes = JSON.parse(localStorage.getItem('sharedLikedMixes') || '[]');
 
+    // --- Вспомогательные функции ---
     function updateCounters() {
       myLikesEl.textContent = `❤️ ${myLikedMixes.length}`;
       sharedLikesEl.textContent = `💞 ${sharedLikedMixes.length}`;
     }
     updateCounters();
 
-    // --- Чат: прокрутка ---
-    let chatScrollTimeout = null;
-    chat.addEventListener('scroll', () => {
-      isUserScrollingChat = true;
-      clearTimeout(chatScrollTimeout);
-      chatScrollTimeout = setTimeout(() => {
-        isUserScrollingChat = false;
-      }, 1000);
-    });
-
-    function scrollToBottomIfNeeded() {
-      if (!isUserScrollingChat || chat.scrollHeight - chat.clientHeight - chat.scrollTop < 100) {
-        chat.scrollTop = chat.scrollHeight;
-        isUserScrollingChat = false;
-      }
+    function scrollToBottom() {
+      chat.scrollTop = chat.scrollHeight;
     }
 
     // --- Модалки ---
@@ -494,64 +491,64 @@
       });
     });
 
-    // Share modal cycling instruction
-    let secretMsgIndex = 0;
-    function cycleSecretMessage() {
-      shareInstruction.textContent = SECRET_MESSAGES[secretMsgIndex];
-      secretMsgIndex = (secretMsgIndex + 1) % SECRET_MESSAGES.length;
-      setTimeout(cycleSecretMessage, 1500);
-    }
-
-    shareSendBtn.addEventListener('click', async () => {
-  const msg = shareMessageInput.value.trim();
-  if (!pendingShareUrl) return;
-
-  const lang = ['ru', 'en', 'zh'][secretMsgIndex]; // текущий язык
-  const url = new URL(window.location);
-  url.searchParams.set('mix', btoa(pendingShareUrl));
-  if (msg) url.searchParams.set('msg', btoa(encodeURIComponent(msg)));
-  url.searchParams.set('lang', lang);
-
-  const finalUrl = url.toString();
-
-  try {
-    if (navigator.share && /^https?:/.test(window.location.protocol)) {
-      await navigator.share({
-        title: 'Смотри, какой микс!',
-        url: finalUrl
+    myLikesEl.addEventListener('click', () => {
+      myLikesGrid.innerHTML = '';
+      myLikedMixes.slice().reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'collection-item';
+        div.innerHTML = `<img src="${item.url}" onerror="this.style.display='none'">`;
+        myLikesGrid.appendChild(div);
       });
-    } else {
-      // Fallback: копирование через textarea
-      const textarea = document.createElement('textarea');
-      textarea.value = finalUrl;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'absolute';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        const success = document.execCommand('copy');
-        if (success) {
-          alert('Ссылка скопирована! Отправь её другу.');
-        } else {
-          alert('Скопируйте вручную:\n' + finalUrl);
-        }
-      } catch (err) {
-        alert('Скопируйте вручную:\n' + finalUrl);
-      }
-      document.body.removeChild(textarea);
-    }
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      console.warn('Share/copy failed:', e);
-      alert('Не удалось отправить. Скопируйте ссылку вручную:\n' + finalUrl);
-    }
-  }
+      document.getElementById('my-likes-modal').style.display = 'flex';
+    });
 
-  shareModal.style.display = 'none';
-});
+    sharedLikesEl.addEventListener('click', () => {
+      sharedLikesGrid.innerHTML = '';
+      sharedLikedMixes.slice().reverse().forEach(url => {
+        const div = document.createElement('div');
+        div.className = 'collection-item';
+        div.innerHTML = `<img src="${url}" onerror="this.style.display='none'">`;
+        sharedLikesGrid.appendChild(div);
+      });
+      document.getElementById('shared-likes-modal').style.display = 'flex';
+    });
 
-    // --- Сообщения и миксы ---
+    // --- Сканер ---
+    function showScanner() {
+      const rect = choiceArea.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      const height = rect.height;
+      const left = rect.left;
+      const width = rect.width;
+
+      dynamicScanner.style.width = width + 'px';
+      dynamicScanner.style.left = left + 'px';
+      dynamicScanner.style.top = top + 'px';
+      dynamicScanner.style.setProperty('--start-top', top + 'px');
+      dynamicScanner.style.setProperty('--end-top', (top + height) + 'px');
+
+      dynamicScanner.style.transform = 'scaleX(0)';
+      dynamicScanner.style.opacity = '1';
+      dynamicScanner.classList.remove('scanning');
+      scannerOverlay.style.display = 'block';
+
+      setTimeout(() => {
+        dynamicScanner.style.transition = 'transform 1s ease-out';
+        dynamicScanner.style.transform = 'scaleX(1)';
+      }, 50);
+
+      setTimeout(() => {
+        dynamicScanner.classList.add('scanning');
+        dynamicScanner.style.transition = 'none';
+      }, 1050);
+    }
+
+    function hideScanner() {
+      scannerOverlay.style.display = 'none';
+      dynamicScanner.classList.remove('scanning');
+    }
+
+    // --- Сообщения ---
     function addMessage(codePoint, sender = 'player2') {
       const el = document.createElement('div');
       el.className = `message ${sender}`;
@@ -563,35 +560,103 @@
       img.onerror = () => { img.style.display = 'none'; };
       el.appendChild(img);
       chat.appendChild(el);
-      setTimeout(scrollToBottomIfNeeded, 50);
+      requestAnimationFrame(scrollToBottom);
       if (sender === 'player2') lastBotMessageTime = Date.now();
       resetInactivityTimer();
     }
 
-    function addSecretMessage(text) {
-      const el = document.createElement('div');
-      el.className = 'message secret-message';
-      el.textContent = text;
-      chat.appendChild(el);
-      setTimeout(scrollToBottomIfNeeded, 50);
+    // --- Генерация случайного микса ---
+    function getRandomMixUrl() {
+      const a = window.points[Math.floor(Math.random() * window.points.length)];
+      const compat = getCompat(a);
+      if (!compat.length) return null;
+      const b = compat[Math.floor(Math.random() * compat.length)];
+      const i1 = window.points.indexOf(a), i2 = window.points.indexOf(b);
+      if (i1 === -1 || i2 === -1) return null;
+      const b1 = convertBase(i1, 10, 64), b2 = convertBase(i2, 10, 64);
+      const pat1 = new RegExp(`^(\\w+)\\.${b1}\\.${b2}`, 'm');
+      const pat2 = new RegExp(`^(\\w+)\\.${b2}\\.${b1}`, 'm');
+      const match = window.pairs.match(pat1) || window.pairs.match(pat2);
+      if (!match) return null;
+      const revPart = match[0].split('.')[0];
+      const rev = window.revisions[convertBase(revPart, 64, 10)];
+      const order = window.pairs.match(pat2) ? [b, a] : [a, b];
+      return mixmojiUrl(rev, order);
     }
 
-    async function downloadImage(url) {
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'emoji-mix.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-      } catch (e) {
-        alert('Не удалось скачать');
+    // --- Скачать изображение ---
+    function downloadImage(url, filename = 'mix.png') {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // --- Шеринг ---
+    let currentShareMixUrl = '';
+
+    function openShareModal(mixUrl) {
+      currentShareMixUrl = mixUrl;
+      shareMixPreview.src = mixUrl;
+      secretMessage.value = '';
+      fromName.value = 'Я';
+      shareModal.style.display = 'flex';
+
+      // Циклическая подсказка
+      let promptIndex = 0;
+      secretPrompt.textContent = SECRET_PROMPTS[promptIndex];
+      const promptInterval = setInterval(() => {
+        promptIndex = (promptIndex + 1) % SECRET_PROMPTS.length;
+        secretPrompt.textContent = SECRET_PROMPTS[promptIndex];
+      }, 1500);
+
+      const closeHandler = () => {
+        clearInterval(promptInterval);
+        shareModal.removeEventListener('click', closeHandler);
+      };
+      shareModal.addEventListener('click', (e) => {
+        if (e.target === shareModal) {
+          closeHandler();
+          shareModal.style.display = 'none';
+        }
+      });
+    }
+
+    sendShareBtn.addEventListener('click', async () => {
+      const secret = secretMessage.value.trim();
+      const from = fromName.value.trim() || 'Я';
+      const encodedMix = encodeMixUrl(currentShareMixUrl);
+      const baseUrl = window.location.origin + window.location.pathname;
+      const shareUrl = `${baseUrl}?mix=${encodedMix}&msg=${encodeURIComponent(secret)}&from=${encodeURIComponent(from)}`;
+
+      // Попытка Web Share
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Секретное сообщение 💖',
+            text: secret ? `"${secret}" — ${from}` : `От ${from}`,
+            url: shareUrl
+          });
+        } catch (e) {
+          if (e.name !== 'AbortError') {
+            alert('Не удалось отправить. Скопируйте ссылку.');
+          }
+        }
+      } else {
+        // Копирование ссылки
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          alert('Ссылка скопирована! Отправь её другу.');
+        }).catch(() => {
+          prompt('Скопируй ссылку:', shareUrl);
+        });
       }
-    }
 
+      shareModal.style.display = 'none';
+    });
+
+    // --- Добавление стикера с кнопками ---
     function addSticker(url) {
       const container = document.createElement('div');
       container.className = 'message system sticker-container';
@@ -600,34 +665,37 @@
       img.className = 'sticker-img';
       img.src = url;
       img.onerror = () => img.style.display = 'none';
+      container.appendChild(img);
 
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'action-buttons';
+      const actions = document.createElement('div');
+      actions.className = 'sticker-actions';
 
-      const likeBtn = document.createElement('span');
-      likeBtn.className = 'action-btn';
-      likeBtn.textContent = '♡';
+      const downloadBtn = document.createElement('div');
+      downloadBtn.className = 'sticker-btn';
+      downloadBtn.textContent = '📥';
+      downloadBtn.title = 'Скачать';
+      downloadBtn.onclick = () => downloadImage(url);
+
+      const shareBtn = document.createElement('div');
+      shareBtn.className = 'sticker-btn';
+      shareBtn.textContent = '↗️';
+      shareBtn.title = 'Поделиться';
+      shareBtn.onclick = () => openShareModal(url);
+
+      actions.appendChild(downloadBtn);
+      actions.appendChild(shareBtn);
+      container.appendChild(actions);
+
+      const likeBtn = document.createElement('div');
+      likeBtn.className = 'like-btn';
+      likeBtn.style.position = 'absolute';
+      likeBtn.style.bottom = '-8px';
+      likeBtn.style.right = '8px';
+      likeBtn.style.fontSize = '20px';
+      likeBtn.style.cursor = 'pointer';
       likeBtn.dataset.url = url;
       likeBtn.dataset.botLiked = 'false';
 
-      const downloadBtn = document.createElement('span');
-      downloadBtn.className = 'action-btn';
-      downloadBtn.textContent = '📥';
-      downloadBtn.onclick = () => downloadImage(url);
-
-      const shareBtn = document.createElement('span');
-      shareBtn.className = 'action-btn';
-      shareBtn.textContent = '📤';
-      shareBtn.onclick = () => {
-        pendingShareUrl = url;
-        shareMixPreview.src = url;
-        shareMessageInput.value = '';
-        shareModal.style.display = 'flex';
-        secretMsgIndex = 0;
-        cycleSecretMessage();
-      };
-
-      // Like logic
       const isUserLiked = myLikedMixes.some(m => m.url === url);
       const isShared = sharedLikedMixes.includes(url);
       updateLikeIcon(likeBtn, isUserLiked, isShared);
@@ -672,14 +740,9 @@
         }
       });
 
-      actionsDiv.appendChild(likeBtn);
-      actionsDiv.appendChild(downloadBtn);
-      actionsDiv.appendChild(shareBtn);
-
-      container.appendChild(img);
-      container.appendChild(actionsDiv);
+      container.appendChild(likeBtn);
       chat.appendChild(container);
-      setTimeout(scrollToBottomIfNeeded, 50);
+      requestAnimationFrame(scrollToBottom);
 
       recentMixUrls.push(url);
       if (recentMixUrls.length > 3) recentMixUrls.shift();
@@ -739,27 +802,7 @@
       return Math.floor(Math.random() * 91) + 10;
     }
 
-    function getRandomMixUrl() {
-      const a = window.points[Math.floor(Math.random() * window.points.length)];
-      const compat = getCompat(a);
-      if (!compat.length) return null;
-      const b = compat[Math.floor(Math.random() * compat.length)];
-      const i1 = window.points.indexOf(a), i2 = window.points.indexOf(b);
-      if (i1 === -1 || i2 === -1) return null;
-      const b1 = convertBase(i1, 10, 64), b2 = convertBase(i2, 10, 64);
-      const pat1 = new RegExp(`^(\\w+)\\.${b1}\\.${b2}`, 'm');
-      const pat2 = new RegExp(`^(\\w+)\\.${b2}\\.${b1}`, 'm');
-      const match = window.pairs.match(pat1) || window.pairs.match(pat2);
-      if (!match) return null;
-      const revPart = match[0].split('.')[0];
-      const rev = window.revisions[convertBase(revPart, 64, 10)];
-      const order = window.pairs.match(pat2) ? [b, a] : [a, b];
-      return mixmojiUrl(rev, order);
-    }
-
-    // --- Гибридная прокрутка выбора ---
-    // ... (оставляем без изменений)
-
+    // --- Гибридная прокрутка ---
     function switchToNativeScroll() {
       if (!useVirtualScroll || hasSwitchedToNative) return;
       useVirtualScroll = false;
@@ -838,6 +881,7 @@
     function handleUserChoice(selectedId) {
       if (botAssistantActive) deactivateBotAssistant();
       emojiCanvas.classList.add('disabled-all');
+      lastUserEmojiId = selectedId;
       addMessage(selectedId, 'player1');
 
       setTimeout(() => {
@@ -895,7 +939,7 @@
       const systemDiv = document.createElement('div');
       systemDiv.className = 'message system fade';
       chat.appendChild(systemDiv);
-      setTimeout(scrollToBottomIfNeeded, 50);
+      requestAnimationFrame(scrollToBottom);
 
       let index = 0;
       const update = () => {
@@ -954,9 +998,11 @@
       showChoices();
     }
 
-    // --- Взаимодействие ---
+    // --- Обработка взаимодействия ---
     function onManualInteraction() {
-      if (useVirtualScroll) switchToNativeScroll();
+      if (useVirtualScroll) {
+        switchToNativeScroll();
+      }
       resetInactivityTimer();
     }
 
@@ -964,23 +1010,23 @@
     choiceArea.addEventListener('touchstart', onManualInteraction, { passive: true });
     choiceArea.addEventListener('pointerdown', onManualInteraction);
 
-    refreshInterlocutorBtn.addEventListener('click', () => {
+    // --- Кнопки обновления ---
+    refreshInterlocutor.addEventListener('click', () => {
       if (interlocutorActive) switchToNewInterlocutor();
     });
 
-    refreshMyAvatarBtn.addEventListener('click', () => {
-      let newUrl = getRandomMixUrl();
-      if (!newUrl && myLikedMixes.length > 0) {
-        newUrl = myLikedMixes[Math.floor(Math.random() * myLikedMixes.length)].url;
-      }
-      if (newUrl) {
-        myAvatar.src = newUrl;
-        if (!myFirstMixUrl) myFirstMixUrl = newUrl;
+    refreshMyMix.addEventListener('click', () => {
+      const newMix = getRandomMixUrl();
+      if (newMix) {
+        myAvatar.src = newMix;
+        myFirstMixUrl = newMix;
       }
     });
 
+    // --- Бот-ассистент ---
     function activateBotAssistant() {
       if (!interlocutorActive || userInteracted) return;
+
       showMultilingualMessage(WANT_TO_PLAY_MESSAGES, () => {
         botAssistantActive = true;
         myAvatar.src = "image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ctext x='30' y='40' font-size='32' text-anchor='middle' fill='%23000'%3E🤖%3C/text%3E%3C/svg%3E";
@@ -1003,7 +1049,7 @@
       if (myFirstMixUrl) {
         myAvatar.src = myFirstMixUrl;
       } else {
-        myAvatar.src = "image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23007bff'/%3E%3C/svg%3E";
+        myAvatar.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='28' fill='%23007bff'/%3E%3C/svg%3E";
       }
     }
 
@@ -1014,52 +1060,37 @@
       inactivityTimer = setTimeout(activateBotAssistant, INACTIVITY_TIMEOUT);
     }
 
-    // --- ЗАПУСК ПО ССЫЛКЕ ---
-    function handleIncomingShare() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mixB64 = urlParams.get('mix');
-      const msgB64 = urlParams.get('msg');
-      const lang = urlParams.get('lang') || 'ru';
-
-      if (!mixB64) return false;
-
-      try {
-        const mixUrl = atob(mixB64);
-        const secretMsg = msgB64 ? decodeURIComponent(atob(msgB64)) : null;
-
-        // Очистить историю
-        chat.innerHTML = '';
-        resetCanvas();
-
-        // Показать микс
-        addSticker(mixUrl);
-
-        // Показать секретное сообщение
-        if (secretMsg) {
-          addSecretMessage(`💌 ${secretMsg}`);
-        }
-
-        // Запустить игру
-        currentGameIndex = 1;
-        turnsInCurrentGame = 0;
-        maxTurnsForCurrentGame = getMaxTurnsForGame(currentGameIndex);
-        launchNewInterlocutor();
-
-        // Убрать параметры из URL
-        history.replaceState(null, '', window.location.pathname);
-
-        return true;
-      } catch (e) {
-        console.warn("Invalid share link", e);
-      }
-      return false;
-    }
-
-    function initApp() {
-      if (handleIncomingShare()) {
+    // --- Запуск из шеринга ---
+    function startGameFromShare(mixUrl, secret, from) {
+      const decoded = decodeMixUrl(mixUrl);
+      if (!decoded) {
+        initApp();
         return;
       }
 
+      // Показываем секретное сообщение
+      const secretMsg = document.createElement('div');
+      secretMsg.className = 'message system';
+      secretMsg.textContent = `"${secret || '...'}" — ${from}`;
+      chat.appendChild(secretMsg);
+
+      // Добавляем микс
+      addSticker(decoded);
+
+      // Запускаем игру
+      interlocutorActive = true;
+      myFirstMixUrl = decoded;
+      myAvatar.src = decoded;
+
+      // Бот отвечает
+      setTimeout(() => {
+        currentBaseEmoji = window.points[Math.floor(Math.random() * window.points.length)];
+        addMessage(currentBaseEmoji, 'player2');
+        showChoices();
+      }, 2000);
+    }
+
+    function initApp() {
       showMultilingualSearchMessage(() => {
         setTimeout(() => {
           currentGameIndex = 1;
@@ -1076,3 +1107,4 @@
   </script>
 </body>
 </html>
+
